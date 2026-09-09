@@ -1,0 +1,247 @@
+N41533 DETECTION STUDY APP, VERSION 2.4.1: RESEARCHER QUICK GUIDE
+(9 September 2026)
+
+WHAT ONE SESSION LOOKS LIKE
+1. Open jbeim.github.io/flight-study in the headset browser (or double-click
+   index.html on the PC for the desktop preview).
+2. Home screen -> Start Test Configuration.
+3. Setup screen, top to bottom:
+   1 Participant code (P01, P02 ...). The code fixes that person's random
+     order; the order is shown on the screen and written into every file.
+     Then "Enter participant information": code, date and start time are
+     filled in for you; researcher initials, venue, headset, certificate,
+     hours, vision correction, VR experience and a consent check are
+     optional and stay under the code (no names). Researcher, venue and
+     headset are remembered from the last session on that headset. You
+     can review or edit the same panel on the closing screen.
+   2 Choose the 12 clip files from the headset's Movies folder (select all
+     twelve at once). Shows 12 green OKs.
+   3 Nose calibration: once per headset. Enter VR, look straight at the
+     aircraft nose in the video, pull the trigger. Remembered afterward.
+   4 Checks: audio files and VR run automatically.
+   5 Researcher settings: report e-mail (jbeim@yahoo.com), the Web3Forms
+     access key (see E-MAIL below), the viewer seat position (see SEAT
+     POSITION below; leave it on "pilot's seat"), and the Short test run
+     box (first two approaches only; every file gets _TEST in its name).
+   The line under the Begin button tells you exactly what is still missing.
+4. Begin participant session: four narration pieces play (welcome and
+   safety, briefing, how to respond, ready). Enter the flight -> the
+   participant pulls the trigger to start each approach.
+5. During an approach: trigger = "I see it" (flight pauses); point and
+   trigger again = lock in the direction. Two small panels sit directly
+   behind the seat, side by side, a little below eye level (turn right
+   round; they are 168 and 192 degrees from the nose and 19 degrees below
+   the horizon, out of every window sightline): the red one
+   = "pressed by mistake" (the press is kept but marked withdrawn), the
+   green one = "replay this approach" (the clip restarts from the start;
+   the replay is logged and counted on the card row, and earlier presses
+   are kept). Several presses per approach are fine. The flight always
+   plays to the end. A break comes after approach 6 (questionnaire), then
+   Continue the session.
+6. When the twelfth approach ends the CLOSING SCREEN appears. Top part
+   is for the participant, bottom part (under the line) is yours.
+
+REPORT AN ISSUE (the amber button at the bottom right of every screen)
+Anything odd, at any point: headset or comfort, video or audio,
+controller or pointing, procedure or timing, a participant comment,
+software, other; with a severity (Note, Minor, Major, Session stopped)
+and a sentence in plain words. The app stamps the time, the screen, the
+current approach and clip time. Issues go into the event log, a
+Pxx_issues.csv file, an Issues sheet in the spreadsheet, an "Issues and
+notes" section of the report, three columns of the master-log row
+(issues_count, issues_major, issues_text) and STUDY_master_issues.csv.
+Notes made on the setup screen before Begin are carried into that
+participant's session. The closing screen also has an "Add an issue or
+note" button for anything the participant says during the debriefing.
+If the headset comes off between approaches or while a pointing is
+pending, the resume screen appears and the session continues from the
+same point (the pending pointing is kept).
+
+IF THE HEADSET CRASHES, THE BROWSER CLOSES, OR THE PAGE RELOADS
+Nothing is lost: every press and every event is written to the browser's
+storage as it happens. To carry on:
+1. Open the app again. The home screen shows an amber button
+   "Continue an interrupted session: P07, approach 7 of 12". Press it.
+   (If you do not see it, go to Start Test Configuration and type the
+   code; the same amber button appears under the code.)
+2. On the setup screen choose the 12 clip files again (the browser cannot
+   keep files across a reload; the nose calibration is remembered).
+3. Press "Continue this interrupted session at approach N". The
+   participant puts the headset on, sees WELCOME BACK, and pulls the
+   trigger. An approach that was cut off part-way starts again from its
+   beginning; its earlier presses are kept and the restart is logged as a
+   replay. Finished approaches are never repeated.
+The event log records session_resumed (with the next position, the card
+that restarts, the order and its seed) and the report says how many times
+the session was resumed. Pressing Begin instead of Continue for a code
+that has an unfinished session does NOT overwrite it: the old session is
+moved to an archive entry in the browser's storage and a fresh session
+starts (the technical log says so).
+
+RESUME SCREEN: RESEARCHER OPTIONS (code required)
+Whenever the resume screen is showing (headset off, break, or after a
+crash), "Researcher options" at the bottom opens three buttons that need
+the researcher code: Restart this approach from the beginning (logged as
+a replay), Skip this approach (it is left INCOMPLETE in the report), and
+End the session here (goes straight to the closing screen; the approach
+in progress is left incomplete and the report can be locked as usual).
+Every option writes a researcher_... event with the reason.
+
+SEAT POSITION (researcher settings)
+The 360 video is a sphere around the viewer. "Pilot's seat" moves the
+viewer's eye point 3% of the sphere radius toward the nose and 1.5%
+down, so the instrument panel sits a little closer, the way it does from
+the seat. This is not a zoom: things straight ahead are drawn up to 3%
+larger, things behind up to 3% smaller, and a drone at 3 or 9 o'clock
+keeps its exact size. The setting and its numbers are written to
+session_start, the summary, the report text and the master-log row
+(seat_offset, seat_offset_fwd, seat_offset_down). "Camera position" turns
+the offset off. Use the same setting for every participant.
+
+WHAT ELSE CHANGED IN 2.4 (all verified with the automated suite, 149
+checks, and a real-browser check of the 360 view)
+- Pointing azimuth is now measured from the calibrated nose. In 2.3 it was
+  measured from a fixed direction of the video sphere, which would have
+  put every pointing about 79 degrees off; no participant had been run.
+- The service panels and the in-flight prompts are placed relative to the
+  calibrated nose, so they are truly behind the seat (2.3 would have put
+  them over the left wing on the headset).
+- Fixed foveated rendering is switched off when VR starts (it blurs the
+  edge of the view, where a drone first appears); the value is logged in
+  the xr_entered event. The XR reference space is "local" (eye level).
+- The order record: session_start, the summary, the text report and the
+  master row now carry order_seed (the number the shuffle was seeded
+  with), order_method (the sentence describing the shuffle) and
+  order_as_presented (the cards that actually ran, in order), alongside
+  the planned order and each card's position. Any session's order can be
+  regenerated from the code alone; see IRB\Randomization_Method_Note.txt.
+- three.js, SheetJS and JSZip are built into index.html: once the page is
+  open, nothing else is fetched from the internet (the clips are local;
+  the audio and the answers video come from the same site as the page).
+- New master-log columns (now 128): order_seed, order_method,
+  order_as_presented, seat_offset, seat_offset_fwd, seat_offset_down,
+  resumed_after_reload.
+- Four optional narration pieces (2.4.1): 14_welcome_back (resume after
+  a break, a headset removal or a crash), 15_flight_ready (the moment the
+  participant enters the flight), 16_restart_approach (an approach that
+  starts again after a crash or a researcher restart), 17_replaying (the
+  green panel). Each plays only if its mp3 exists in audio\narration; the
+  audio check lists any that are missing but does not block the session.
+
+CLOSING SCREEN, PARTICIPANT PART
+  Time in the instrument   shown at the top (headset on to headset off,
+                           break included)
+  1 Play the debriefing    your recorded debriefing plays; the text is
+                           printed under the button so you can read along
+  2 Where the drones were  a 68-second video with music: title, then seven
+                           seconds for each of the eight drone approaches
+                           (the stretch where the drone is most visible, a
+                           yellow arrow following its recorded position, a
+                           2x close-up inset, its range, and a short label
+                           such as "Fixed-wing, orbiting"), then a thank-you
+                           card. Test card 2 is shown with the drone drawn
+                           in for this video only, with the caption that the
+                           participant's own approach was left exactly as
+                           recorded; cards 6 and 7 are marked "modeled
+                           track". The music is a licensed track (credit on
+                           the thank-you card; see Media\Answers_Video_Music).
+                           Playing it is logged (answers_video_played).
+
+SESSION CLOCK
+A clock runs on the researcher screens (intro, break, closing) from the
+moment Enter the flight is pressed until the last approach ends. The
+participant row records headset_on, headset_off, minutes_in_instrument
+(break included), minutes_break, minutes_approaches_only, and
+minutes_session_total (Begin to lock).
+
+MASTER LOG: ONE ROW PER PARTICIPANT
+STUDY_master_log.csv (and the Participants sheet of STUDY_master_log.xlsx)
+has exactly one row per locked participant, 128 plain columns: code,
+date, start time, the participant information, issue counts, timings, hits, misses, false alarms, correct rejections, rates,
+d', criterion, press counts, reaction times, pointing error, then for
+each card TC01..TC12 its position in the order, outcome, presses,
+reaction time, slant range at the hit, and best pointing error. Each
+participant's zip also holds that same single row as Pxx_row.csv, so
+compiling thirty participants is simply stacking the rows (or opening
+the master file, which the app keeps stacking for you on that headset).
+Feed STUDY_master_log.csv straight to an analysis tool; the detailed
+files (cards, presses, events) stay available for anything deeper.
+
+RESULTS SCREEN (RESEARCHER PART): TWO STEPS
+Step 1  Save all report files: one zip lands in the browser's Downloads
+        (on the headset: Files app -> Downloads). Contents for participant
+        P07, for example:
+          P07_row.csv              the one-line master-log row
+          P07_report.html          readable report: session summary, one
+                                   section per card, one sub-report per press
+          P07_report.txt           the same in plain text
+          P07_participant_log.xlsx spreadsheet: Summary, Cards, Presses,
+                                   Event log sheets
+          P07_cards.csv            one row per card (outcome, presses,
+                                   reaction time, best pointing error)
+          P07_presses.csv          one row per press with the aircraft and
+                                   drone geometry at that instant
+          P07_events.csv           the raw time-stamped event log
+          P07_issues.csv           the issues and notes logged in the session
+          P07_results.json         everything, machine-readable
+          STUDY_master_log.csv     one row per participant, all locked so far
+          STUDY_master_log.xlsx    the same plus card and press sheets
+          STUDY_master_cards.csv, STUDY_master_presses.csv   the detail
+          STUDY_master_issues.csv  every issue from every locked participant
+        Short test runs are kept in the browser but left out of the master
+        files, so P00_TEST never lands in the study data.
+Step 2  Type the researcher code (the four digits you chose; it is not
+        written anywhere in the app's files) and press Lock, process, and
+        e-mail. The app rebuilds the reports, saves the zip again, adds the
+        participant to the master log, e-mails the report, and locks
+        itself. The locked screen stays up until the code is entered
+        again; it also offers Re-send, Save the files again, and Save the
+        master log.
+
+WHAT THE SCORING MEANS
+  HIT                a press on a target card while the drone was in view
+                     (window widened by 1 s before and 3 s after)
+  MISS               a target card with no hit
+  FALSE ALARM        a press on a control card, or a press on a target
+                     card outside the drone's window
+  CORRECT REJECTION  a control card with no press
+  WITHDRAWN          a press the participant flagged with the red panel;
+                     it is kept in the log but not counted
+  UNSCORED           a press on a target card that has no visibility
+                     window (none at present; TC06 and TC07 now use
+                     modeled tracks and are scored, flagged modeled)
+  Reaction time      press time minus the moment the drone entered view
+                     (also given from "first likely visible")
+  Pointing error     angle between where the controller pointed (relative
+                     to the calibrated nose) and the drone's true direction
+                     from the aircraft at the paused instant; split into
+                     azimuth and elevation parts
+  Geometry per press aircraft position (lat, lon, altitude, height above
+                     threshold, ground speed, track, distance and bearing
+                     from the threshold, seconds to the threshold) and the
+                     drone's position (lat, lon, altitude), slant range,
+                     horizontal and vertical separation, clock position,
+                     relative bearing and elevation from the aircraft, true
+                     bearings both ways, and the drone's distance and
+                     bearing from the threshold.
+  d'                 detection sensitivity from the hit and false-alarm
+                     rates by card, log-linear correction (Hautus, 1995);
+                     criterion c is also given.
+
+E-MAIL
+A web page cannot send e-mail on its own. The app uses the free Web3Forms
+relay: go to web3forms.com once, enter jbeim@yahoo.com, and the site
+e-mails you an access key. Paste it into Researcher settings (it is
+remembered on that device). At lock the report text and the two CSV
+tables go in the body of the e-mail (attachments need a paid plan, so the
+zip is the file of record). Only the participant code travels; no names.
+Without a key the app still saves everything and opens a mail draft.
+
+DATA SAFETY
+Every event is written to the browser's storage as it happens, so a
+headset battery dying mid-session loses nothing: reopen the app and use
+Continue (see above), or open the stored results under the code. Always
+move the zip to the encrypted computer the same day.
+
+KEYBOARD (desktop preview only)
+drag = look around, click = trigger, B = the red mistake panel, R = the green replay panel.
