@@ -319,7 +319,7 @@
     <div class="readbox" id="pConsentText"></div>
     <div class="audrow"><button class="bigbtn quiet" id="pcPlay">Pause the recording</button><button class="bigbtn" id="pcNext" disabled>I have listened to and read the consent form</button></div>
     <p class="pnote" id="pcHint">The button unlocks when the recording has finished.</p>
-    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="pcCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="pcUnlock">Unlock the button (logged)</button><p class="note" id="pcGateDet"></p></details>
+    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="pcCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="pcUnlock">Unlock the button (logged)</button><button class="bigbtn quiet" id="pcOutside">Participant did this outside the headset (logged)</button><p class="note" id="pcGateDet"></p></details>
   </div>
 </section>
 <section id="p-sign" class="screen pscreen">
@@ -397,7 +397,7 @@ DLY 0800-1800 LCL.
     </div>
     <div class="audrow"><button class="bigbtn quiet" id="pbPlay">Start the briefing</button><button class="bigbtn" id="pbNext" disabled>I understand the briefing: go to the takeoff</button></div>
     <p class="pnote" id="pbHint">The button unlocks when the briefing recording has finished. Ask the researcher about anything that is unclear.</p>
-    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="pbCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="pbUnlock">Unlock the button (logged)</button><p class="note" id="pbGateDet"></p></details>
+    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="pbCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="pbUnlock">Unlock the button (logged)</button><button class="bigbtn quiet" id="pbOutside">Participant did this outside the headset (logged)</button><p class="note" id="pbGateDet"></p></details>
   </div>
 </section>
 <section id="p-interview" class="screen pscreen">
@@ -423,7 +423,7 @@ DLY 0800-1800 LCL.
 <p>Your responses, including the times of your controller presses and where you pointed, are kept under a code rather than your name and stored securely, as described in the consent form. You can ask me anything now, and if you decide you would rather not have your data included, tell me, and I will remove it. In a few weeks, if you agree, I will send you a short summary of the themes from your interview so you can check that I captured what you meant. Do you have any questions?”</p></div>
     <div class="audrow"><button class="bigbtn quiet" id="pdbPlay">Start the debriefing</button><button class="bigbtn" id="pdbNext" disabled>Continue to where the drones were</button></div>
     <p class="pnote" id="pdbHint">The button unlocks when the debriefing recording has finished.</p>
-    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="pdbCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="pdbUnlock">Unlock the button (logged)</button><p class="note" id="pdbGateDet"></p></details>
+    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="pdbCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="pdbUnlock">Unlock the button (logged)</button><button class="bigbtn quiet" id="pdbOutside">Participant did this outside the headset (logged)</button><p class="note" id="pdbGateDet"></p></details>
   </div>
 </section>
 <section id="p-answers" class="screen pscreen">
@@ -435,7 +435,7 @@ DLY 0800-1800 LCL.
     <video id="answersVid" class="player" controls playsinline preload="metadata" src="media/answers_reveal.mp4"></video>
     <div class="audrow"><button class="bigbtn quiet" id="answersPlay">Play the video</button><button class="bigbtn" id="paNext" disabled>Finish</button></div>
     <p class="pnote" id="paHint">The Finish button unlocks when the video has finished.</p>
-    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="paCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="paUnlock">Unlock the button (logged)</button><p class="note" id="paGateDet"></p></details>
+    <details class="rgate"><summary class="note">Researcher</summary><input type="text" id="paCode" placeholder="researcher code" autocomplete="off" spellcheck="false"><button class="bigbtn quiet" id="paUnlock">Unlock the button (logged)</button><button class="bigbtn quiet" id="paOutside">Participant did this outside the headset (logged)</button><p class="note" id="paGateDet"></p></details>
   </div>
 </section>
 <section id="p-end" class="screen pscreen">
@@ -601,7 +601,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.5.1 (2026-09-11, takeoff clip recognized by its size; participant flow in the headset: consent reading, tablet signature gate, briefing, takeoff, interview pause, debriefing, answers video, The End; computer station for the participant form and wrap-up; clips recognized by file size)";
+const VERSION = "study-app 2.5.2 (2026-09-11, researcher can record that the consent, briefing, debriefing or answers video was done outside the headset; takeoff clip recognized by its size; participant flow in the headset: consent reading, tablet signature gate, briefing, takeoff, interview pause, debriefing, answers video, The End; computer station for the participant form and wrap-up; clips recognized by file size)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -744,12 +744,13 @@ function buildReport(R){
 const INFO_KEYS=["code","date","start_time_local","researcher","venue","headset","certificate","instructor","total_hours","recent_hours","vision","vr_experience","prior_drone_sighting","consent_signed","consent_audio","consent_followup","notes"];
 const INFO_BLANK=Object.fromEntries(INFO_KEYS.map(k=>[k,""]));
 // participant flow in the headset (2.5): when each step happened, how long the readings took, researcher overrides
-const FLOW_KEYS=["headset_first_on","consent_reading_min","consent_signed_local","consent_declined","briefing_min","takeoff","ready_instructions_heard","interview_pause_min","debrief_min","answers_video_watched","the_end_reached","researcher_unlocks"];
+const FLOW_KEYS=["headset_first_on","consent_reading_min","consent_signed_local","consent_declined","briefing_min","takeoff","ready_instructions_heard","interview_pause_min","debrief_min","answers_video_watched","the_end_reached","researcher_unlocks","consent_outside_headset","briefing_outside_headset","debrief_outside_headset","answers_outside_headset"];
 function flowOf(events){ const f=t=>events.find(e=>e.type===t); const L=t=>{ const e=f(t); return e?(e.local||e.wall):""; }; const m=(a,b)=>{ const A=f(a),B=f(b); return (A&&B)?Math.round((Date.parse(B.wall)-Date.parse(A.wall))/600)/100:""; };
   return { headset_first_on:L("participant_start"), consent_reading_min:m("consent_audio_start","consent_read_confirmed"), consent_signed_local:L("consent_signed_tablet"), consent_declined:f("consent_declined")?1:0,
     briefing_min:m("briefing_audio_start","briefing_confirmed"), takeoff:f("takeoff_end")?"played":(f("takeoff_error")?"did not open":(f("takeoff_skipped")?"skipped (test run)":(f("takeoff_start")?"started, not finished":""))),
     ready_instructions_heard:f("ready_instructions_end")?1:0, interview_pause_min:m("session_end","interview_done"), debrief_min:m("debrief_audio_start","debrief_confirmed"),
-    answers_video_watched:f("answers_video_ended")?1:(f("answers_video_played")?"started":0), the_end_reached:f("the_end")?1:0, researcher_unlocks:events.filter(e=>e.type==="researcher_unlock").length }; }
+    answers_video_watched:f("answers_video_ended")?1:(f("answers_video_played")?"started":0), the_end_reached:f("the_end")?1:0, researcher_unlocks:events.filter(e=>e.type==="researcher_unlock").length,
+    consent_outside_headset:f("consent_outside_headset")?1:0, briefing_outside_headset:f("briefing_outside_headset")?1:0, debrief_outside_headset:f("debrief_outside_headset")?1:0, answers_outside_headset:f("answers_outside_headset")?1:0 }; }
 function issueList(R){ return (R.events||[]).filter(e=>e.type==="issue").map((e,i)=>({ participant:R.participant, n:i+1, wall:e.wall, local_time:e.local||"", screen:e.screen||"", phase:e.phase||"", card:e.clip||"", position:e.clipIndex||"", clip_time_s:e.clipTime==null?"":e.clipTime, category:e.category||"", severity:e.severity||"", text:e.note||"" })); }
 const ISSUE_COLS=["participant","n","wall","local_time","screen","phase","card","position","clip_time_s","category","severity","text"];
 function sessionTiming(events){ const w=t=>{ const e=events.find(x=>x.type===t); return e?Date.parse(e.wall):null; }; const first=w("session_start")||(events.length?Date.parse(events[0].wall):null);
@@ -793,7 +794,7 @@ function reportText(rep){ const s=rep.summary; const L=[`N41533 DETECTION STUDY:
   `Presses: ${s.presses_total} total, ${s.hit_presses} hits, ${s.false_alarm_presses} false alarms, ${s.unscored_presses} unscored, ${s.presses_withdrawn} withdrawn.`,
   `Reaction time on hits: mean ${fmt(s.mean_rt_from_enters_s," s")} (median ${fmt(s.median_rt_from_enters_s," s")}) after the drone entered view; mean ${fmt(s.mean_rt_from_first_visible_s," s")} after first likely visible; mean slant range at the hit ${fmt(s.mean_hit_slant_range_ft," ft")}.`,
   `Pointing accuracy on hits: mean ${fmt(s.mean_pointing_error_deg," deg")}, median ${fmt(s.median_pointing_error_deg," deg")}. Nose calibration ${fmt(s.nose_offset_deg," deg")}.`,
-  `Participant flow: headset first on ${s.headset_first_on||"n/a"}; consent reading ${fmt(s.consent_reading_min===""?null:s.consent_reading_min," min")}; consent signed on the tablet ${s.consent_signed_local||"not recorded"}${s.consent_declined?" (DECLINED)":""}; briefing ${fmt(s.briefing_min===""?null:s.briefing_min," min")}; takeoff ${s.takeoff||"n/a"}; interview pause ${fmt(s.interview_pause_min===""?null:s.interview_pause_min," min")}; debriefing ${fmt(s.debrief_min===""?null:s.debrief_min," min")}; answers video watched ${s.answers_video_watched}; The End reached ${s.the_end_reached}; researcher unlocks ${s.researcher_unlocks}.`,`${s.notes}`,``,`PARTICIPANT INFORMATION (researcher-entered, under code only)`,infoText(s),``,`ISSUES AND NOTES (${(rep.issues||[]).length})`];
+  `Participant flow: headset first on ${s.headset_first_on||"n/a"}; consent reading ${fmt(s.consent_reading_min===""?null:s.consent_reading_min," min")}; consent signed on the tablet ${s.consent_signed_local||"not recorded"}${s.consent_declined?" (DECLINED)":""}; briefing ${fmt(s.briefing_min===""?null:s.briefing_min," min")}; takeoff ${s.takeoff||"n/a"}; interview pause ${fmt(s.interview_pause_min===""?null:s.interview_pause_min," min")}; debriefing ${fmt(s.debrief_min===""?null:s.debrief_min," min")}; answers video watched ${s.answers_video_watched}; The End reached ${s.the_end_reached}; researcher unlocks ${s.researcher_unlocks}; done outside the headset: ${["consent","briefing","debrief","answers"].filter(k=>s[k+"_outside_headset"]).map(k=>k==="debrief"?"debriefing":(k==="answers"?"answers video":k)).join(", ")||"none"}.`,`${s.notes}`,``,`PARTICIPANT INFORMATION (researcher-entered, under code only)`,infoText(s),``,`ISSUES AND NOTES (${(rep.issues||[]).length})`];
   (rep.issues||[]).forEach(i=>L.push(issueLine(i))); if(!(rep.issues||[]).length) L.push("  none recorded");
   L.push("",`CARD REPORTS`); rep.cards.forEach(c=>{ L.push(""); L.push(cardText(c)); }); return L.join("\n"); }
 const INFO_LABELS={code:"Participant code",date:"Session date",start_time_local:"Start time (local)",researcher:"Researcher",venue:"Venue",headset:"Headset",certificate:"Highest certificate",instructor:"Instructor",total_hours:"Total flight hours",recent_hours:"Hours in last 90 days",vision:"Vision correction",vr_experience:"Prior VR experience",prior_drone_sighting:"Prior drone sighting from a cockpit",consent_signed:"Consent signed and copy given",consent_audio:"Consent to audio recording",consent_followup:"Consent to follow-up contact",notes:"Session notes"};
@@ -851,9 +852,9 @@ function progressOf(R){ const ev=R.events||[]; const done=ev.some(e=>e.type==="s
 function isV25(R){ return /^study-app 2\.5/.test((R&&R.version)||""); }
 function stageOf(R){ const E=R.events||[]; const has=t=>E.some(e=>e.type===t);
   if(has("study_locked")) return "locked"; if(has("consent_declined")) return "declined"; if(has("the_end")) return "end";
-  if(has("session_end")) return !isV25(R)?"end":(has("debrief_confirmed")?"answers":(has("interview_done")?"debrief":"interview"));
+  if(has("session_end")) return !isV25(R)?"end":(has("debrief_confirmed")||has("debrief_outside_headset")?"answers":(has("interview_done")?"debrief":"interview"));
   if(has("clip_start")||has("takeoff_end")||has("takeoff_skipped")||has("takeoff_error")||has("ready_instructions_end")) return "approaches";
-  if(has("takeoff_start")||has("briefing_confirmed")) return "takeoff"; if(has("consent_signed_tablet")) return "briefing"; if(has("consent_read_confirmed")) return "sign";
+  if(has("takeoff_start")||has("briefing_confirmed")) return "takeoff"; if(has("consent_signed_tablet")) return "briefing"; if(has("consent_read_confirmed")||has("consent_outside_headset")) return "sign";
   return isV25(R)?"consent":"approaches"; }
 const STAGE_LABEL={consent:"the consent reading (starts again)",sign:"the consent signature step",briefing:"the briefing",takeoff:"the takeoff (load the clips first)",approaches:"the approaches",interview:"the interview pause",debrief:"the debriefing",answers:"the answers video"};
 function resumable(R){ const st=stageOf(R); if(["end","locked","declined"].includes(st)) return false; const p=progressOf(R);
@@ -941,9 +942,9 @@ $("continueBtn").onclick=async()=>{ const c=$("pcode").value.trim().toUpperCase(
     if(ok) document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); else ev("enter_flight_failed",{reason:"after resume"}); return; }
   S.idx=["interview","debrief","answers"].includes(st)?R.order.length-1:-1; S.phase=["interview","debrief","answers"].includes(st)?"done":"participant";
   ev("session_resumed",{reason:"page reloaded or browser restarted", stage:st, note}); $("beginBtn").disabled=true;
-  if(st==="consent") show("p-welcome"); else if(st==="sign") show("p-sign"); else if(st==="briefing"){ READERS.briefing.reset(); show("p-brief"); }
+  if(st==="consent") show("p-welcome"); else if(st==="sign") show("p-sign"); else if(st==="briefing"){ READERS.briefing.reset(); outsideRestore("briefing"); show("p-brief"); }
   else if(st==="takeoff"){ ev("enter_flight_pressed",{reason:"after resume"}); const ok=await enterXR(()=>startTakeoff()); if(ok) document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); else ev("enter_flight_failed",{reason:"after resume"}); }
-  else if(st==="interview") show("p-interview"); else if(st==="debrief"){ READERS.debrief.reset(); show("p-debrief"); } else if(st==="answers"){ answersReset(); show("p-answers"); } };
+  else if(st==="interview") show("p-interview"); else if(st==="debrief"){ READERS.debrief.reset(); outsideRestore("debrief"); show("p-debrief"); } else if(st==="answers"){ answersReset(); show("p-answers"); } };
 function homeContinueUI(){ const L=interruptedSessions(); const b=$("homeContinue"), d=$("homeContinueDet"); if(!L.length){ b.style.display="none"; d.style.display="none"; return; }
   const R=L[L.length-1], p=progressOf(R), st=stageOf(R); b.style.display="block"; d.style.display="block"; b.textContent=`Continue an interrupted session: ${R.participant}, `+(st==="approaches"&&p.started?`approach ${p.nextIdx+1} of ${p.total}`:STAGE_LABEL[st]);
   d.textContent=`This browser holds an unfinished session for ${R.participant} (${p.completed} of ${p.total} approaches finished, last saved ${R.events[R.events.length-1].local||""}). Press to open the setup with that code, then Continue.`+(L.length>1?` ${L.length} unfinished sessions are stored; enter another code on the setup screen to pick a different one.`:""); }
@@ -1233,6 +1234,25 @@ $("answersVid").addEventListener("ended",()=>{ ev("answers_video_ended"); $("paN
 $("answersVid").addEventListener("error",()=>{ ev("audio_error",{screen:"p-answers", note:"answers video could not be loaded"}); $("paHint").textContent="The video could not be loaded. The researcher can unlock the button."; });
 $("paUnlock").onclick=()=>{ if(!codeOK($("paCode").value)){ $("paGateDet").textContent="The code was not accepted."; return; } $("paCode").value=""; ev("researcher_unlock",{screen:"p-answers", reason:"researcher unlocked Finish before the video had finished"}); $("paNext").disabled=false; $("paGateDet").textContent="Unlocked (logged)."; };
 $("paNext").onclick=()=>{ $("answersVid").pause(); ev("the_end",{screen:"p-end"}); persist(); show("p-end"); };
+
+// the participant chose to do a step outside the headset (paper, or the tablet or computer with the researcher): the researcher records it with the code.
+// Logged as <step>_outside_headset (not as an early unlock) and counted in the master log.
+const OUTSIDE={
+  consent:{screen:"p-consent", code:"pcCode", det:"pcGateDet", btn:"pcOutside", note:"consent form reviewed with the researcher outside the headset"},
+  briefing:{screen:"p-brief", code:"pbCode", det:"pbGateDet", btn:"pbOutside", next:"pbNext", hint:"pbHint", note:"briefing done with the researcher outside the headset",
+    hintText:"Recorded: the briefing was done outside the headset. When the participant has the headset on, they press the button to go to the takeoff."},
+  debrief:{screen:"p-debrief", code:"pdbCode", det:"pdbGateDet", btn:"pdbOutside", next:"pdbNext", hint:"pdbHint", note:"debriefing done with the researcher outside the headset",
+    hintText:"Recorded: the debriefing was done outside the headset. Press the button to go to where the drones were."},
+  answers:{screen:"p-answers", code:"paCode", det:"paGateDet", btn:"paOutside", note:"answers video shown outside the headset, or not shown"}
+};
+function outsideRecord(k){ const o=OUTSIDE[k]; if(!codeOK($(o.code).value)){ $(o.det).textContent="The code was not accepted."; return false; } $(o.code).value="";
+  if(READERS[k]) READERS[k].stop(); if(k==="answers"){ try{ $("answersVid").pause(); }catch(e){} }
+  ev(k+"_outside_headset",{screen:o.screen, reason:"participant chose to do this outside the headset", note:o.note}); $(o.det).textContent="Recorded (logged)."; return true; }
+function outsideRestore(k){ const o=OUTSIDE[k]; if(!o.next||!S.events.some(e=>e.type===k+"_outside_headset")) return; READERS[k].unlocked=true; $(o.next).disabled=false; $(o.hint).textContent=o.hintText; }
+$("pcOutside").onclick=()=>{ if(!outsideRecord("consent")) return; $("psCode").value=""; $("psDet").textContent="Both choices are written to the event log with the time."; $("psDeclined").dataset.confirm=""; $("psDeclined").textContent="The participant decided not to take part"; show("p-sign"); };
+$("pbOutside").onclick=()=>{ if(!outsideRecord("briefing")) return; outsideRestore("briefing"); };
+$("pdbOutside").onclick=()=>{ if(!outsideRecord("debrief")) return; outsideRestore("debrief"); };
+$("paOutside").onclick=()=>{ if(!outsideRecord("answers")) return; ev("the_end",{screen:"p-end"}); persist(); show("p-end"); };
 $("peOpen").onclick=()=>{ if(!codeOK($("peCode").value)){ $("peDet").textContent="The code was not accepted."; return; } $("peCode").value=""; openResearcherResults(); };
 $("resDebrief").onclick=()=>{ const st=stageOf(resultsObject()); if(st==="interview") show("p-interview"); else if(st==="debrief") show("p-debrief"); else if(st==="answers") show("p-answers"); else show("p-end"); };
 

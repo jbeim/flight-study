@@ -1,4 +1,4 @@
-N41533 DETECTION STUDY APP, VERSION 2.5.1: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.5.2: RESEARCHER QUICK GUIDE
 (11 September 2026)
 
 WHAT CHANGED IN 2.5, IN ONE PARAGRAPH
@@ -101,6 +101,25 @@ answers video you can unlock the button early (for example if a recording
 will not play). Every early unlock is written to the log as
 researcher_unlock and counted in the master-log column researcher_unlocks.
 
+IF THE PARTICIPANT WOULD RATHER NOT WEAR THE HEADSET FOR A STEP (2.5.2)
+Participants may do the consent form, the briefing, the debriefing or the
+answers video outside the headset, on paper or on the tablet or computer
+with you. On that screen open "Researcher", type the code and press
+"Participant did this outside the headset (logged)". What happens next:
+  Consent form      goes straight to the tablet signature step.
+  Briefing          the button unlocks; when the participant has the
+                    headset on, they press it to go to the takeoff.
+  Debriefing        the button unlocks; press it for the answers video.
+  Answers video     goes straight to The End.
+Each choice is written to the event log under its own name
+(consent_outside_headset, briefing_outside_headset,
+debrief_outside_headset, answers_outside_headset) with the reason
+"participant chose to do this outside the headset", and counted in four
+master-log columns of the same names (1 = done outside, 0 = in the
+headset). It is NOT counted as an early unlock. The written report lists
+the steps done outside the headset. Use "Unlock the button" only for a
+recording or video that will not play.
+
 AFTER THE PARTICIPANT LEAVES
 On the headset
 1. On The End screen open "Researcher", type the code, press "Open the
@@ -159,13 +178,14 @@ RESUME SCREEN: RESEARCHER OPTIONS (code required)
 Unchanged: Restart this approach, Skip this approach, End the session here
 (now goes to the interview pause, then the debriefing and The End as usual).
 
-NEW COLUMNS IN THE PARTICIPANT ROW AND THE MASTER LOG (142 columns now)
+NEW COLUMNS IN THE PARTICIPANT ROW AND THE MASTER LOG (146 columns now)
 consent_audio, consent_followup (from the form), headset_first_on (Start on
 the Welcome screen), consent_reading_min, consent_signed_local,
 consent_declined, briefing_min, takeoff (played / did not open / skipped
 (test run) / started, not finished), ready_instructions_heard,
 interview_pause_min, debrief_min, answers_video_watched (1, started, 0),
-the_end_reached, researcher_unlocks. The event log has a new "stage" column
+the_end_reached, researcher_unlocks, and (2.5.2) consent_outside_headset,
+briefing_outside_headset, debrief_outside_headset, answers_outside_headset. The event log has a new "stage" column
 for resumes. Everything else (scoring, per-card columns, issues, seat
 offset, order seed) is unchanged from 2.4.1.
 
