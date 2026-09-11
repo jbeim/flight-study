@@ -1,4 +1,4 @@
-N41533 DETECTION STUDY APP, VERSION 2.6.0: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.6.1: RESEARCHER QUICK GUIDE
 (11 September 2026)
 
 WHAT CHANGED IN 2.6
@@ -15,8 +15,10 @@ WHAT CHANGED IN 2.6
 - The briefing (new briefing room picture) and the debriefing still have to
   be listened to in full before the button unlocks, and the answers video
   has to play to the end. No code is needed for any of that.
-- The takeoff now starts at liftoff and runs about half a minute. At the end
-  the flight pauses and asks "Did you notice anything unusual during the
+- The takeoff now plays 25 seconds of the takeoff clip, from 20.0 s (end of
+  the roll) to 45.0 s (climbing). The nose comes up at about 22.9 s and a
+  bird crosses the front windshield at 22.8 to 23.3 s. At the end the flight
+  pauses and asks "Did you notice anything unusual during the
   takeoff?". The participant points at YES or NO and pulls the trigger; a YES
   asks them to tell you what they noticed. Their answer and the time they
   took are logged. The next trigger pull goes on to the instructions.
@@ -27,10 +29,15 @@ WHAT CHANGED IN 2.6
 - The engine sound follows the picture smoothly. 2.5 jumped the sound back
   into step every time it drifted by 0.08 s, which made it choppy on the
   headset; 2.6 speeds it up or slows it down by 3% for a moment instead.
-- The interview pause after the last approach no longer needs the code: the
-  participant (or you) presses "The interview is finished: continue to the
-  debriefing". It is kept so the interview still happens before the
-  debriefing reveals the drones.
+- After the last approach a Thank you screen stays up. It tells the
+  participant to take off the headset for a short interview in their own
+  words, and that afterwards they can put it back on for a short debriefing
+  and the video of where the drones were. It has two buttons, no code:
+  "After the interview: start the debriefing and reveal video" (your
+  debriefing recording plays first, then the video, then The End) and
+  "End the test" (press twice; goes straight to Thank you / The End). If you
+  use End the test, give the debriefing in person: it is logged and the
+  master log shows it in the column "closing".
 - The setup screen shows this participant's exact run order with the file
   each approach will play, and can save it as a text file.
 
@@ -77,12 +84,14 @@ WHAT THE PARTICIPANT SEES
  2 Consent form         optional recording, or the previously-signed button
  3 Briefing room        your recording (11); the button unlocks when it ends;
                         ask your comprehension questions here
- 4 Takeoff              from liftoff, about 33 s, then the YES/NO question
+ 4 Takeoff              25 s from the end of the roll (bird at about 3 s),
+                        then the YES/NO question
  5 Instructions         your recordings 03 and 04, then "pull the trigger
                         for the first approach"
  6 Twelve approaches    about 2 minutes each; break after approach 6
- 7 All approaches complete  headset off, interview, then "The interview is
-                        finished: continue to the debriefing"
+ 7 Thank you           headset off, interview; the screen stays up with
+                        "After the interview: start the debriefing and
+                        reveal video" and "End the test"
  8 Debriefing           sunset lounge, your recording (13); unlocks at the end
  9 Where the drones were  answers video; Finish unlocks at the end
 10 Thank you for participating / The End
@@ -97,8 +106,9 @@ screen's Researcher section opens the results.
 NEW IN THE REPORTS AND MASTER LOG (2.6)
 consent_in_headset (listened in full / skipped: previously read and signed /
 done outside the headset), takeoff_question_answer (yes / no),
-takeoff_question_s (seconds to answer), run_length, run_start_s (55.055) and
-takeoff_from_s (27.027). Clip times in the reports are still measured from
+takeoff_question_s (seconds to answer), run_length, run_start_s (55.055),
+takeoff_from_s (20.02) and closing (debriefing and reveal video / ended at
+the closing screen). Clip times in the reports are still measured from
 the start of each clip file, so a press at 2:00 into a 2-minute run shows as
 about 175 s.
 
@@ -174,9 +184,10 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.6 plays it from 27.0 s
-(liftoff) to the end, about 33 seconds, then asks the question. The start
-point is one number in the app (TAKEOFF_FROM_S) if it needs to move. How the
+whole minute from lining up to the climb; app 2.6.1 plays 20.0 s to 45.0 s
+(25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
+The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
+TAKEOFF_TO_S). How the
 clip was made and checked: Pass-Card Folders\00_Takeoff\00_READ_ME_Takeoff_Clip.txt.
 
 REPORT AN ISSUE, SEAT POSITION, SCORING, E-MAIL, DATA SAFETY

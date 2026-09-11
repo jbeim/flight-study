@@ -398,7 +398,7 @@ DLY 0800-1800 LCL.
       <h3>How the session runs</h3>
       <ul>
         <li>When the recording ends, the researcher will ask you a few quick questions to make sure everything is clear. Then press the button below.</li>
-        <li>First comes about half a minute of the flight just after takeoff, so you can get used to the view. Nothing is scored during it.</li>
+        <li>First comes about half a minute of the takeoff, so you can get used to the view. Nothing is scored during it.</li>
         <li>Then twelve recorded approaches of about two minutes each. You pull the trigger to start each one.</li>
         <li>There is a short break with the headset off partway through.</li>
       </ul>
@@ -410,9 +410,11 @@ DLY 0800-1800 LCL.
 </section>
 <section id="p-interview" class="screen pscreen">
   <div class="glass signbox">
-    <h1>All approaches are complete</h1>
-    <p class="sub" style="font-size:1.25rem">Thank you. Please take off the headset. The researcher will talk with you for a little while, and then you will put the headset back on for the debriefing.</p>
-    <button class="bigbtn" id="piNext">The interview is finished: continue to the debriefing</button>
+    <h1>Thank you</h1>
+    <p class="sub" style="font-size:1.25rem">You have finished all of the approaches. Please take off the headset. The researcher will now do a short interview to capture your experiences in your own words.</p>
+    <p class="sub" style="font-size:1.25rem">After the interview you can put the headset back on for a short debriefing and a video that shows where the drones were.</p>
+    <button class="bigbtn" id="piNext">After the interview: start the debriefing and reveal video</button>
+    <button class="bigbtn quiet" id="piEnd">End the test</button>
     <details class="rgate" style="text-align:left"><summary class="note">Researcher</summary>
       <input type="text" id="piCode" placeholder="researcher code" autocomplete="off" spellcheck="false">
       <button class="bigbtn quiet" id="piResults">Open the researcher results screen</button>
@@ -609,7 +611,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.6.0 (2026-09-11, participant-led flow: optional consent listening with a previously-signed button, no tablet pause; approaches about 2 minutes; takeoff from liftoff with a question at the end; smoother soundtrack sync; order report on the setup screen)";
+const VERSION = "study-app 2.6.1 (2026-09-11, takeoff segment 20.0 to 45.0 s so the bird at 22.8 s is included; closing screen with the interview notice, a reveal button and an End the test button; built on 2.6.0)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -625,7 +627,8 @@ const CLIPS = ["TC01","TC02","TC03","TC04","TC05","TC06","TC07","TC08","TC09","T
 // Sizes of the clips rebuilt on 2026-09-10 (Pass-Card Folders\00_Clip_Checksums_2026-09-10.txt).
 const CLIP_BYTES = {3953625631:"TC01",3728233529:"TC02",3993626609:"TC03",3968533159:"TC04",3903898799:"TC05",3963491080:"TC06",3936537322:"TC07",3901593270:"TC08",3723885573:"TC09",3733553265:"TC10",3737388135:"TC11",3891963843:"TC12",1237744680:"TAKEOFF"};
 const RUN_START_SHORT_S = 55.055;   // "about 2 minutes": every approach starts 55 GOPs (55.055 s) into its clip; the drone windows, deviations and the threshold all lie after 139 s
-const TAKEOFF_FROM_S = 27.027;      // the takeoff clip plays from just before the wheels leave the runway (liftoff at about 27.5 s)
+const TAKEOFF_FROM_S = 20.020;      // the takeoff segment starts near the end of the roll: the nose comes up at about 22.9 s and a bird crosses the windshield at 22.8-23.3 s
+const TAKEOFF_TO_S = 45.045;        // and stops here (25 s in all); then the question
 const TAKEOFF = "TAKEOFF";                 // one-minute familiarization clip (not scored): Pass-Card Folders\00_Takeoff\20260804_TAKEOFF_COCKPIT360_1137Z.mp4
 const READY_NARR = ["03_instructions","04_ready"];   // played in the headset after the takeoff clip, before the first approach
 const READING = { consent:"12_consent_reading", briefing:"11_prebriefing_reading", debrief:"13_debriefing_reading" };
@@ -754,7 +757,7 @@ function buildReport(R){
 const INFO_KEYS=["code","date","start_time_local","researcher","venue","headset","certificate","instructor","total_hours","recent_hours","vision","vr_experience","prior_drone_sighting","consent_signed","consent_audio","consent_followup","notes"];
 const INFO_BLANK=Object.fromEntries(INFO_KEYS.map(k=>[k,""]));
 // participant flow in the headset (2.5): when each step happened, how long the readings took, researcher overrides
-const FLOW_KEYS=["headset_first_on","consent_reading_min","consent_signed_local","consent_declined","briefing_min","takeoff","ready_instructions_heard","interview_pause_min","debrief_min","answers_video_watched","the_end_reached","researcher_unlocks","consent_outside_headset","briefing_outside_headset","debrief_outside_headset","answers_outside_headset","consent_in_headset","takeoff_question_answer","takeoff_question_s","run_length","run_start_s","takeoff_from_s"];
+const FLOW_KEYS=["headset_first_on","consent_reading_min","consent_signed_local","consent_declined","briefing_min","takeoff","ready_instructions_heard","interview_pause_min","debrief_min","answers_video_watched","the_end_reached","researcher_unlocks","consent_outside_headset","briefing_outside_headset","debrief_outside_headset","answers_outside_headset","consent_in_headset","takeoff_question_answer","takeoff_question_s","run_length","run_start_s","takeoff_from_s","closing"];
 function flowOf(events){ const f=t=>events.find(e=>e.type===t); const L=t=>{ const e=f(t); return e?(e.local||e.wall):""; }; const m=(a,b)=>{ const A=f(a),B=f(b); return (A&&B)?Math.round((Date.parse(B.wall)-Date.parse(A.wall))/600)/100:""; };
   return { headset_first_on:L("participant_start"), consent_reading_min:m("consent_audio_start","consent_read_confirmed"), consent_signed_local:L("consent_signed_tablet"), consent_declined:f("consent_declined")?1:0,
     briefing_min:m("briefing_audio_start","briefing_confirmed"), takeoff:f("takeoff_end")?"played":(f("takeoff_error")?"did not open":(f("takeoff_skipped")?"skipped (test run)":(f("takeoff_start")?"started, not finished":""))),
@@ -763,7 +766,8 @@ function flowOf(events){ const f=t=>events.find(e=>e.type===t); const L=t=>{ con
     consent_outside_headset:f("consent_outside_headset")?1:0, briefing_outside_headset:f("briefing_outside_headset")?1:0, debrief_outside_headset:f("debrief_outside_headset")?1:0, answers_outside_headset:f("answers_outside_headset")?1:0,
     consent_in_headset:f("consent_previously_signed")?"skipped: previously read and signed":(f("consent_outside_headset")?"done outside the headset":(f("consent_read_confirmed")?(f("consent_audio_end")?"listened in full":"continued without listening"):"")),
     takeoff_question_answer:(f("takeoff_question_answer")||{}).note||"", takeoff_question_s:m("takeoff_question_asked","takeoff_question_answer")===""?"":Math.round(m("takeoff_question_asked","takeoff_question_answer")*6000)/100,
-    run_length:(f("session_start")||{}).run_length||"full (before 2.6)", run_start_s:(f("session_start")||{}).run_start_s==null?0:(f("session_start")||{}).run_start_s, takeoff_from_s:(f("session_start")||{}).takeoff_from_s==null?0:(f("session_start")||{}).takeoff_from_s }; }
+    run_length:(f("session_start")||{}).run_length||"full (before 2.6)", run_start_s:(f("session_start")||{}).run_start_s==null?0:(f("session_start")||{}).run_start_s, takeoff_from_s:(f("session_start")||{}).takeoff_from_s==null?0:(f("session_start")||{}).takeoff_from_s,
+    closing:f("test_ended_at_closing_screen")?"ended at the closing screen (no in-headset debriefing or video)":(f("the_end")?(f("debrief_confirmed")||f("debrief_outside_headset")?"debriefing and reveal video":"reached The End"):"") }; }
 function issueList(R){ return (R.events||[]).filter(e=>e.type==="issue").map((e,i)=>({ participant:R.participant, n:i+1, wall:e.wall, local_time:e.local||"", screen:e.screen||"", phase:e.phase||"", card:e.clip||"", position:e.clipIndex||"", clip_time_s:e.clipTime==null?"":e.clipTime, category:e.category||"", severity:e.severity||"", text:e.note||"" })); }
 const ISSUE_COLS=["participant","n","wall","local_time","screen","phase","card","position","clip_time_s","category","severity","text"];
 function sessionTiming(events){ const w=t=>{ const e=events.find(x=>x.type===t); return e?Date.parse(e.wall):null; }; const first=w("session_start")||(events.length?Date.parse(events[0].wall):null);
@@ -807,7 +811,7 @@ function reportText(rep){ const s=rep.summary; const L=[`N41533 DETECTION STUDY:
   `Presses: ${s.presses_total} total, ${s.hit_presses} hits, ${s.false_alarm_presses} false alarms, ${s.unscored_presses} unscored, ${s.presses_withdrawn} withdrawn.`,
   `Reaction time on hits: mean ${fmt(s.mean_rt_from_enters_s," s")} (median ${fmt(s.median_rt_from_enters_s," s")}) after the drone entered view; mean ${fmt(s.mean_rt_from_first_visible_s," s")} after first likely visible; mean slant range at the hit ${fmt(s.mean_hit_slant_range_ft," ft")}.`,
   `Pointing accuracy on hits: mean ${fmt(s.mean_pointing_error_deg," deg")}, median ${fmt(s.median_pointing_error_deg," deg")}. Nose calibration ${fmt(s.nose_offset_deg," deg")}.`,
-  `Participant flow: headset first on ${s.headset_first_on||"n/a"}; consent reading ${fmt(s.consent_reading_min===""?null:s.consent_reading_min," min")}; consent signed on the tablet ${s.consent_signed_local||"not recorded"}${s.consent_declined?" (DECLINED)":""}; briefing ${fmt(s.briefing_min===""?null:s.briefing_min," min")}; takeoff ${s.takeoff||"n/a"}; interview pause ${fmt(s.interview_pause_min===""?null:s.interview_pause_min," min")}; debriefing ${fmt(s.debrief_min===""?null:s.debrief_min," min")}; answers video watched ${s.answers_video_watched}; The End reached ${s.the_end_reached}; researcher unlocks ${s.researcher_unlocks}; consent in the headset: ${s.consent_in_headset||"n/a"}; takeoff question: ${s.takeoff_question_answer||"not asked"}${s.takeoff_question_s!==""&&s.takeoff_question_s!=null?" ("+s.takeoff_question_s+" s to answer)":""}; approach length: ${s.run_length} (start ${s.run_start_s} s into each clip; clip times in this report are measured from the start of the clip file); done outside the headset: ${["consent","briefing","debrief","answers"].filter(k=>s[k+"_outside_headset"]).map(k=>k==="debrief"?"debriefing":(k==="answers"?"answers video":k)).join(", ")||"none"}.`,`${s.notes}`,``,`PARTICIPANT INFORMATION (researcher-entered, under code only)`,infoText(s),``,`ISSUES AND NOTES (${(rep.issues||[]).length})`];
+  `Participant flow: headset first on ${s.headset_first_on||"n/a"}; consent reading ${fmt(s.consent_reading_min===""?null:s.consent_reading_min," min")}; consent signed on the tablet ${s.consent_signed_local||"not recorded"}${s.consent_declined?" (DECLINED)":""}; briefing ${fmt(s.briefing_min===""?null:s.briefing_min," min")}; takeoff ${s.takeoff||"n/a"}; interview pause ${fmt(s.interview_pause_min===""?null:s.interview_pause_min," min")}; debriefing ${fmt(s.debrief_min===""?null:s.debrief_min," min")}; answers video watched ${s.answers_video_watched}; The End reached ${s.the_end_reached}; researcher unlocks ${s.researcher_unlocks}; consent in the headset: ${s.consent_in_headset||"n/a"}; takeoff question: ${s.takeoff_question_answer||"not asked"}${s.takeoff_question_s!==""&&s.takeoff_question_s!=null?" ("+s.takeoff_question_s+" s to answer)":""}; closing: ${s.closing||"n/a"}; approach length: ${s.run_length} (start ${s.run_start_s} s into each clip; clip times in this report are measured from the start of the clip file); done outside the headset: ${["consent","briefing","debrief","answers"].filter(k=>s[k+"_outside_headset"]).map(k=>k==="debrief"?"debriefing":(k==="answers"?"answers video":k)).join(", ")||"none"}.`,`${s.notes}`,``,`PARTICIPANT INFORMATION (researcher-entered, under code only)`,infoText(s),``,`ISSUES AND NOTES (${(rep.issues||[]).length})`];
   (rep.issues||[]).forEach(i=>L.push(issueLine(i))); if(!(rep.issues||[]).length) L.push("  none recorded");
   L.push("",`CARD REPORTS`); rep.cards.forEach(c=>{ L.push(""); L.push(cardText(c)); }); return L.join("\n"); }
 const INFO_LABELS={code:"Participant code",date:"Session date",start_time_local:"Start time (local)",researcher:"Researcher",venue:"Venue",headset:"Headset",certificate:"Highest certificate",instructor:"Instructor",total_hours:"Total flight hours",recent_hours:"Hours in last 90 days",vision:"Vision correction",vr_experience:"Prior VR experience",prior_drone_sighting:"Prior drone sighting from a cockpit",consent_signed:"Consent signed and copy given",consent_audio:"Consent to audio recording",consent_followup:"Consent to follow-up contact",notes:"Session notes"};
@@ -934,7 +938,7 @@ function renderOrderReport(){ const el=$("orderReport"); if(!el) return; const c
   let order=seededOrder(c); const test=$("setTest").checked; if(test) order=order.slice(0,2);
   const rs=runStart(); const fmtT=t=>`${Math.floor(t/60)}:${String(Math.round(t%60)).padStart(2,"0")}`;
   const lines=[`Participant ${c}${test?" (SHORT TEST RUN: first 2 approaches, files named "+c+"_TEST)":""}`, `Approach length: ${S.run==="full"?"full clip, about 3 minutes":"about 2 minutes (each clip starts at "+fmtT(rs)+")"}`, ``,
-    `Takeoff  from liftoff, about ${fmtT(33)}, then the question "Did you notice anything unusual?"  file: ${S.files[TAKEOFF]?S.files[TAKEOFF].name:"NOT LOADED"}`];
+    `Takeoff  ${fmtT(TAKEOFF_FROM_S)} to ${fmtT(TAKEOFF_TO_S)} of the takeoff clip (about ${Math.round(TAKEOFF_TO_S-TAKEOFF_FROM_S)} s, includes the bird), then the question "Did you notice anything unusual?"  file: ${S.files[TAKEOFF]?S.files[TAKEOFF].name:"NOT LOADED"}`];
   order.forEach((tc,i)=>{ const f=S.files[tc]; lines.push(`${String(i+1).padStart(2," ")}. ${tc}  ${f?"file: "+f.name:"NOT LOADED"}${(!test&&i+1===BREAK_AFTER)?"   -> break after this one":""}`); });
   lines.push(``,`Order method: ${ORDER_METHOD}; seed ${orderSeed(c)}.`); el.textContent=lines.join("\n"); return lines.join("\r\n"); }
 $("orderSave").onclick=()=>{ const t=renderOrderReport(); const c=$("pcode").value.trim().toUpperCase(); if(!t) return; download(`${c}_run_order_${stamp()}.txt`, t+"\r\n", "text/plain"); };
@@ -1167,7 +1171,9 @@ setInterval(()=>{ if(S.phase!=="playing"||vid.paused) { fpsCount=0; fpsLast=perf
   const dt=(performance.now()-fpsLast)/1000; if(dt<9.5) return; const fps=fpsCount/dt; fpsCount=0; fpsLast=performance.now();
   const q=vid.getVideoPlaybackQuality?vid.getVideoPlaybackQuality():null;
   ev("playback_rate",{fps:+fps.toFixed(1), droppedTotal:q?q.droppedVideoFrames:null, presenting:renderer&&renderer.xr.isPresenting}); },1000);
-vid.addEventListener("ended", ()=>{ if(S.phase==="takeoff"){ if(clipAudio) clipAudio.pause(); ev("takeoff_end",{tc:TAKEOFF}); takeoffQuestion(); return; }
+function takeoffDone(){ if(S.phase!=="takeoff") return; vid.pause(); if(clipAudio) clipAudio.pause(); ev("takeoff_end",{tc:TAKEOFF}); takeoffQuestion(); }
+vid.addEventListener("timeupdate", ()=>{ if(S.phase==="takeoff"&&vid.currentTime>=TAKEOFF_TO_S) takeoffDone(); });
+vid.addEventListener("ended", ()=>{ if(S.phase==="takeoff"){ takeoffDone(); return; }
   if(S.phase!=="playing"&&S.phase!=="awaitingPoint") return;
   if(clipAudio) clipAudio.pause(); ev("clip_end",{sightings:S.sightingSeq}); S.phase="between";
   const done=S.idx+1;
@@ -1209,7 +1215,7 @@ $("beginBtn").onclick=async()=>{ S.code=$("pcode").value.trim().toUpperCase(); S
   S.started=new Date().toISOString(); S.events=keep.map((e,i)=>Object.assign({},e,{seq:i+1})); S.idx=-1; S.sightingSeq=0; S.answersLogged=false; S.interruptedPhase=null;
   if(!S.info||!S.info.date) S.info=Object.assign({},INFO_BLANK,S.info||{},{code:S.code,date:localStamp().slice(0,10),start_time_local:localStamp().slice(11,16)}); else S.info.code=S.code; infoUI();
   S.orderSeed=orderSeed($("pcode").value); S.restartPending=null;
-  ev("session_start",{version:VERSION, order:S.order.join(" "), order_seed:S.orderSeed, order_method:ORDER_METHOD, noseOffsetDeg:S.noseOffset, seat_offset:S.seat, seat_offset_fwd:SEAT_OFFSETS[S.seat].fwd, seat_offset_down:SEAT_OFFSETS[S.seat].down, testMode:S.testMode, run_length:S.run==="full"?"full clip (about 3 min)":"about 2 min", run_start_s:runStart(), takeoff_from_s:TAKEOFF_FROM_S}); $("beginBtn").disabled=true; S.phase="participant"; READERS.consent.reset(); READERS.briefing.reset(); READERS.debrief.reset(); answersReset(); $("psDeclined").dataset.confirm=""; $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-welcome"); };
+  ev("session_start",{version:VERSION, order:S.order.join(" "), order_seed:S.orderSeed, order_method:ORDER_METHOD, noseOffsetDeg:S.noseOffset, seat_offset:S.seat, seat_offset_fwd:SEAT_OFFSETS[S.seat].fwd, seat_offset_down:SEAT_OFFSETS[S.seat].down, testMode:S.testMode, run_length:S.run==="full"?"full clip (about 3 min)":"about 2 min", run_start_s:runStart(), takeoff_from_s:TAKEOFF_FROM_S, takeoff_to_s:TAKEOFF_TO_S}); $("beginBtn").disabled=true; S.phase="participant"; READERS.consent.reset(); READERS.briefing.reset(); READERS.debrief.reset(); answersReset(); $("psDeclined").dataset.confirm=""; $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-welcome"); };
 async function runIntro(){ const names=["Welcome and safety","Flight briefing","How to respond","Ready"]; $("enterBtn").style.display="none";
   for(let i=0;i<NARR.length;i++){ $("introStep").textContent=`${i+1} of 4`; $("introName").textContent=names[i]; await playSound(AUDIO.narr(NARR[i])); }
   $("introText").textContent="When you are ready, press the button below."; $("enterBtn").style.display="block"; }
@@ -1265,7 +1271,7 @@ async function startTakeoff(){ S.idx=-1; S.phase="loading";
   if(!ok){ ev("takeoff_error",{message:"takeoff clip did not open", tc:TAKEOFF}); return readyForApproaches(); }
   await seekVid(TAKEOFF_FROM_S);
   if(clipAudio) clipAudio.pause(); clipAudio=new Audio(AUDIO.clip(TAKEOFF)); clipAudio.preload="auto"; clipAudio.preservesPitch=false;
-  alignNoseToView(); placePanels(); applySeat(); prompt(null); S.phase="takeoff"; ev("takeoff_start",{tc:TAKEOFF, from_clip_time_s:TAKEOFF_FROM_S});
+  alignNoseToView(); placePanels(); applySeat(); prompt(null); S.phase="takeoff"; ev("takeoff_start",{tc:TAKEOFF, from_clip_time_s:TAKEOFF_FROM_S, to_clip_time_s:TAKEOFF_TO_S});
   vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio); clipAudio.play().catch(()=>log("takeoff audio blocked")); }).catch(e=>log("takeoff video play failed "+e.message)); }
 // after the takeoff: "Did you notice anything unusual?" answered by pointing at YES or NO, then the participant continues
 function takeoffQuestion(){ S.phase="takeoffQuestion"; ev("takeoff_question_asked",{tc:TAKEOFF});
@@ -1279,6 +1285,8 @@ async function readyForApproaches(){ S.phase="takeoffReady"; prompt(["TEST APPRO
 // interview pause -> debriefing
 function openResearcherResults(){ S.station=false; stationResultsUI(); renderResults(); show("s-results"); $("resDebrief").style.display=(S.station||["end","declined","locked"].includes(stageOf(resultsObject())))?"none":"block"; }
 $("piNext").onclick=()=>{ ev("interview_done",{screen:"p-interview"}); READERS.debrief.reset(); show("p-debrief"); };
+$("piEnd").onclick=()=>{ const b=$("piEnd"); if(!b.dataset.confirm){ b.dataset.confirm="1"; b.textContent="Press again to end the test without the debriefing and video"; return; }
+  b.dataset.confirm=""; b.textContent="End the test"; ev("test_ended_at_closing_screen",{screen:"p-interview", note:"ended from the closing screen; the in-headset debriefing and reveal video were not shown (give the debriefing in person)"}); ev("the_end",{screen:"p-end"}); persist(); show("p-end"); };
 $("piResults").onclick=()=>{ if(!codeOK($("piCode").value)){ $("piDet").textContent="The code was not accepted."; return; } $("piCode").value=""; openResearcherResults(); };
 $("pdbNext").onclick=()=>{ READERS.debrief.stop(); ev("debrief_confirmed",{screen:"p-debrief"}); answersReset(); show("p-answers"); };
 // answers video -> The End
