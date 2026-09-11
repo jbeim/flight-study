@@ -1,5 +1,22 @@
-N41533 DETECTION STUDY APP, VERSION 2.6.1: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.6.2: RESEARCHER QUICK GUIDE
 (11 September 2026)
+
+WHAT CHANGED IN 2.6.2
+- The debriefing and the reveal video are LOCKED on the Thank you screen until
+  you confirm the interview is finished. The participant cannot open them on
+  their own. After the interview: on the Thank you screen open "Researcher",
+  type the code, press "Interview finished: unlock the debriefing and reveal
+  video". The big button then reads "Start the debriefing and reveal video";
+  hand the headset back and the participant presses it. The unlock is logged
+  as interview_done (it is not counted as an early unlock). If the page
+  reloads after the unlock, Continue goes straight to the debriefing.
+- New optional recordings (script: Audio Recordings\1 Scripts\Narration
+  Additions v4.4). 18 plays when the cockpit first appears, and the takeoff
+  waits on its first frame until it ends, so the participant is settled
+  before the bird. 19 asks the takeoff question, 20 and 21 answer YES and NO,
+  22 plays on The End. Re-recorded 04 (pull the trigger) and 10 (tells the
+  participant about the interview and that the debriefing and video come
+  after it) replace the old files. Any missing optional file stays silent.
 
 WHAT CHANGED IN 2.6
 - The participant leads the session. You set up the headset, press "Ready:
@@ -32,9 +49,10 @@ WHAT CHANGED IN 2.6
 - After the last approach a Thank you screen stays up. It tells the
   participant to take off the headset for a short interview in their own
   words, and that afterwards they can put it back on for a short debriefing
-  and the video of where the drones were. It has two buttons, no code:
-  "After the interview: start the debriefing and reveal video" (your
-  debriefing recording plays first, then the video, then The End) and
+  and the video of where the drones were. It has two buttons:
+  "Debriefing and reveal video" (locked until you unlock it after the
+  interview, see 2.6.2 above; your debriefing recording plays first, then
+  the video, then The End) and
   "End the test" (press twice; goes straight to Thank you / The End). If you
   use End the test, give the debriefing in person: it is logged and the
   master log shows it in the column "closing".
@@ -89,14 +107,16 @@ WHAT THE PARTICIPANT SEES
  5 Instructions         your recordings 03 and 04, then "pull the trigger
                         for the first approach"
  6 Twelve approaches    about 2 minutes each; break after approach 6
- 7 Thank you           headset off, interview; the screen stays up with
-                        "After the interview: start the debriefing and
-                        reveal video" and "End the test"
+ 7 Thank you           headset off, interview; the screen stays up. After
+                        the interview: Researcher -> code -> "Interview
+                        finished: unlock". Then the participant presses
+                        "Start the debriefing and reveal video" (or
+                        "End the test")
  8 Debriefing           sunset lounge, your recording (13); unlocks at the end
  9 Where the drones were  answers video; Finish unlocks at the end
 10 Thank you for participating / The End
 
-RESEARCHER SECTIONS (code needed, only for problems)
+RESEARCHER SECTIONS (code needed: every session on the Thank you screen, otherwise only for problems)
 The small "Researcher" sections under the briefing, debriefing and answers
 video can unlock a button early if a recording or video will not play
 (logged as researcher_unlock), or record that the participant did that step
@@ -184,7 +204,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.6.1 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.6.2 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the

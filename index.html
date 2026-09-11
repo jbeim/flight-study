@@ -413,10 +413,12 @@ DLY 0800-1800 LCL.
     <h1>Thank you</h1>
     <p class="sub" style="font-size:1.25rem">You have finished all of the approaches. Please take off the headset. The researcher will now do a short interview to capture your experiences in your own words.</p>
     <p class="sub" style="font-size:1.25rem">After the interview you can put the headset back on for a short debriefing and a video that shows where the drones were.</p>
-    <button class="bigbtn" id="piNext">After the interview: start the debriefing and reveal video</button>
+    <button class="bigbtn" id="piNext" disabled>Debriefing and reveal video (unlocks after the interview)</button>
+    <p class="pnote" id="piHint">This button stays locked until the researcher unlocks it after the interview.</p>
     <button class="bigbtn quiet" id="piEnd">End the test</button>
     <details class="rgate" style="text-align:left"><summary class="note">Researcher</summary>
       <input type="text" id="piCode" placeholder="researcher code" autocomplete="off" spellcheck="false">
+      <button class="bigbtn quiet" id="piUnlock">Interview finished: unlock the debriefing and reveal video (logged)</button>
       <button class="bigbtn quiet" id="piResults">Open the researcher results screen</button>
       <p class="note" id="piDet"></p>
     </details>
@@ -611,7 +613,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.6.1 (2026-09-11, takeoff segment 20.0 to 45.0 s so the bird at 22.8 s is included; closing screen with the interview notice, a reveal button and an End the test button; built on 2.6.0)";
+const VERSION = "study-app 2.6.2 (2026-09-11, the debriefing and reveal video stay locked on the closing screen until the researcher confirms the interview is finished; optional recordings 18 to 22 for the takeoff and The End; built on 2.6.1)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -639,9 +641,15 @@ const AUDIO = {
   papi: "audio/radio/R13_papi_advisory.mp3",
 };
 const NARR = ["01_welcome_safety","02_briefing","03_instructions","04_ready"];
-const OPTIONAL_NARR = {welcome_back:"14_welcome_back", flight_ready:"15_flight_ready", restart:"16_restart_approach", replaying:"17_replaying"};   // played when the file exists; silent otherwise
+const OPTIONAL_NARR = {welcome_back:"14_welcome_back", flight_ready:"15_flight_ready", restart:"16_restart_approach", replaying:"17_replaying", takeoff_intro:"18_takeoff_intro", takeoff_question:"19_takeoff_question", takeoff_yes:"20_takeoff_yes", takeoff_no:"21_takeoff_no", the_end:"22_the_end"};   // played when the file exists; silent otherwise
 const optionalOK={};
-function sayOptional(key){ const n=OPTIONAL_NARR[key]; if(!n||optionalOK[n]===false) return null; const a=new Audio(AUDIO.narr(n)); a.onerror=()=>{ optionalOK[n]=false; }; a.play().catch(()=>{}); return a; }
+let optAudio=null;
+function stopOptional(){ if(optAudio){ try{ optAudio.pause(); }catch(e){} optAudio=null; } }
+function sayOptional(key){ const n=OPTIONAL_NARR[key]; if(!n||optionalOK[n]===false) return null; stopOptional(); const a=new Audio(AUDIO.narr(n)); optAudio=a; a.onerror=()=>{ optionalOK[n]=false; }; a.play().catch(()=>{}); return a; }
+// plays an optional piece and waits for it to end (resolves at once when the file is missing or cannot play)
+function sayOptionalWait(key,onStart){ const n=OPTIONAL_NARR[key]; if(!n||optionalOK[n]===false) return Promise.resolve(false); stopOptional();
+  return new Promise(res=>{ const a=new Audio(AUDIO.narr(n)); optAudio=a; let done=false; const fin=v=>{ if(done) return; done=true; res(v); };
+    a.onended=()=>fin(true); a.onerror=()=>{ optionalOK[n]=false; fin(false); }; a.onpause=()=>{ if(!a.ended) fin(false); }; a.play().then(()=>{ if(onStart&&!done) onStart(); }).catch(()=>fin(false)); }); }
 const BREAK_AFTER = 6;
 // Actual UTC of clip time 0:00 on 2026-08-04 (requested cut start minus measured keyframe shift, QC log Sept 1 2026)
 // Clip t=0 in UTC, 4 Aug 2026. Export timeline verified against GoPro and aircraft GPS on 6 Sep 2026 (export t = UTC - 11:36:54.77);
@@ -836,7 +844,7 @@ const $ = id => document.getElementById(id);
 const logEl = $("log");
 function log(m){ const t=new Date().toISOString().substr(11,12); logEl.textContent += `[${t}] ${m}\n`; logEl.scrollTop=logEl.scrollHeight; }
 window.onerror = (m,s,l) => log("ERROR "+m+" line "+l);
-function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on"); document.body.classList.toggle("pmode", /^p-/.test(id)); window.scrollTo(0,0); }
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on"); document.body.classList.toggle("pmode", /^p-/.test(id)); if(id==="p-interview") interviewGate(); window.scrollTo(0,0); }
 function tag(id, cls, txt, det){ const t=$(id); t.className="tag "+cls; t.textContent=txt; if(det!==undefined){ const d=$(id.replace("Tag","Det")); if(d) d.textContent=det; } }
 function big(title, text){ $("bigTitle").textContent=title; $("bigText").textContent=text||""; $("big").style.display=title?"flex":"none"; }
 
@@ -1091,7 +1099,7 @@ async function enterXR(onReady){
   return true;
 }
 function onXREnd(){ log("XR session ended"); renderer.domElement.style.display="none"; xrSession=null; reticle.visible=false;
-  if(S.idx<0&&(S.phase==="takeoff"||S.phase==="takeoffReady"||S.phase==="takeoffQuestion"||S.phase==="takeoffAnswered"||S.phase==="loading")){ if(yesPanel){ yesPanel.visible=false; noPanel.visible=false; } vid.pause(); if(clipAudio) clipAudio.pause(); S.interruptedPhase="takeoff"; S.phase="interrupted"; ev("headset_removed",{during:"takeoff"}); showResume("Paused","The headset came off during the takeoff. Press to re-enter; the takeoff plays again from the start."); }
+  if(S.idx<0&&(S.phase==="takeoff"||S.phase==="takeoffReady"||S.phase==="takeoffQuestion"||S.phase==="takeoffAnswered"||S.phase==="loading")){ stopOptional(); if(yesPanel){ yesPanel.visible=false; noPanel.visible=false; } vid.pause(); if(clipAudio) clipAudio.pause(); S.interruptedPhase="takeoff"; S.phase="interrupted"; ev("headset_removed",{during:"takeoff"}); showResume("Paused","The headset came off during the takeoff. Press to re-enter; the takeoff plays again from the start."); }
   else if(S.phase==="playing"||S.phase==="awaitingPoint"){ vid.pause(); if(clipAudio) clipAudio.pause(); S.interruptedPhase=S.phase; S.phase="interrupted"; ev("headset_removed",{during:S.interruptedPhase}); showResume("Paused","The headset came off during an approach. Press to re-enter and continue the same approach."); }
   else if(S.phase==="waitingNext"||S.phase==="loading"){ S.interruptedPhase="waitingNext"; S.phase="interrupted"; ev("headset_removed",{during:"between approaches"}); showResume("Paused","The headset came off between approaches. Press to re-enter; the participant then pulls the trigger for the next approach."); }
   else if(S.phase==="calibrating"){ S.phase="setup"; prompt(null); }
@@ -1114,7 +1122,7 @@ function onSelect(e){
   else { activeCtrl = e.inputSource && e.inputSource.handedness==="left" ? laserL : laserR; r=controllerRay(activeCtrl); }
   if(S.phase==="calibrating"){ finishCalibration(); return; }
   if(S.phase==="takeoffQuestion"){ _ray.set(r.pos,r.dir); if(yesPanel&&_ray.intersectObject(yesPanel).length) answerTakeoff("yes"); else if(noPanel&&_ray.intersectObject(noPanel).length) answerTakeoff("no"); return; }
-  if(S.phase==="takeoffAnswered"){ ev("takeoff_question_resume",{tc:TAKEOFF}); prompt(null); readyForApproaches(); return; }
+  if(S.phase==="takeoffAnswered"){ stopOptional(); ev("takeoff_question_resume",{tc:TAKEOFF}); prompt(null); readyForApproaches(); return; }
   if(S.phase==="takeoff"||S.phase==="takeoffReady"||S.phase==="loading") return;   // nothing is scored during the takeoff or while loading
   if(S.phase==="waitingNext"){ startClip(); return; }
   if(S.phase==="playing"||S.phase==="awaitingPoint"){
@@ -1205,7 +1213,7 @@ $("resumeSkip").onclick=()=>{ if(!resumeGate()) return; if(S.idx<0){ tag("resume
 $("resumeEnd").onclick=()=>{ if(!resumeGate()) return; vid.pause(); if(clipAudio) clipAudio.pause();
   ev("researcher_ended_session",{reason:"researcher chose end on the resume screen", tc:S.idx>=0?S.order[S.idx]:null}); S.phase="done"; const keepIdx=S.idx; S.idx=-1; ev("session_end",{note:"ended early by the researcher; the approach in progress is left incomplete"}); S.idx=keepIdx;
   if(xrSession) xrSession.end(); show("p-interview"); };
-async function finishSession(){ S.phase="done"; prompt(["ALL APPROACHES COMPLETE","Thank you. Please remove the headset."]); await playSound(AUDIO.narr("10_complete")); ev("session_end");
+async function finishSession(){ S.phase="done"; prompt(["ALL APPROACHES COMPLETE","Thank you. Please take off the headset.","The researcher will now do a short interview."]); await playSound(AUDIO.narr("10_complete")); ev("session_end");
   setTimeout(()=>{ if(xrSession) xrSession.end(); else if(flat){ renderer.domElement.style.display="none"; } show("p-interview"); },1500); }
 
 // ---------- participant intro ----------
@@ -1271,22 +1279,33 @@ async function startTakeoff(){ S.idx=-1; S.phase="loading";
   if(!ok){ ev("takeoff_error",{message:"takeoff clip did not open", tc:TAKEOFF}); return readyForApproaches(); }
   await seekVid(TAKEOFF_FROM_S);
   if(clipAudio) clipAudio.pause(); clipAudio=new Audio(AUDIO.clip(TAKEOFF)); clipAudio.preload="auto"; clipAudio.preservesPitch=false;
-  alignNoseToView(); placePanels(); applySeat(); prompt(null); S.phase="takeoff"; ev("takeoff_start",{tc:TAKEOFF, from_clip_time_s:TAKEOFF_FROM_S, to_clip_time_s:TAKEOFF_TO_S});
+  alignNoseToView(); placePanels(); applySeat();
+  if(OPTIONAL_NARR.takeoff_intro&&optionalOK[OPTIONAL_NARR.takeoff_intro]!==false){ prompt(["TAKEOFF","Look around as you normally would"]); const played=await sayOptionalWait("takeoff_intro",()=>ev("takeoff_intro_start",{tc:TAKEOFF, video_time_s:+vid.currentTime.toFixed(3), video_waiting:vid.paused})); if(played) ev("takeoff_intro_end",{tc:TAKEOFF}); if(S.phase!=="loading") return; }
+  prompt(null); S.phase="takeoff"; ev("takeoff_start",{tc:TAKEOFF, from_clip_time_s:TAKEOFF_FROM_S, to_clip_time_s:TAKEOFF_TO_S});
   vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio); clipAudio.play().catch(()=>log("takeoff audio blocked")); }).catch(e=>log("takeoff video play failed "+e.message)); }
 // after the takeoff: "Did you notice anything unusual?" answered by pointing at YES or NO, then the participant continues
 function takeoffQuestion(){ S.phase="takeoffQuestion"; ev("takeoff_question_asked",{tc:TAKEOFF});
-  prompt(["DID YOU NOTICE ANYTHING UNUSUAL","during the takeoff?","Point at YES or NO, then pull the trigger"]); if(yesPanel){ yesPanel.visible=true; noPanel.visible=true; } }
+  prompt(["DID YOU NOTICE ANYTHING UNUSUAL","during the takeoff?","Point at YES or NO, then pull the trigger"]); if(yesPanel){ yesPanel.visible=true; noPanel.visible=true; } sayOptional("takeoff_question"); }
 function answerTakeoff(ans){ if(S.phase!=="takeoffQuestion") return; if(yesPanel){ yesPanel.visible=false; noPanel.visible=false; }
   ev("takeoff_question_answer",{tc:TAKEOFF, note:ans}); S.phase="takeoffAnswered";
-  prompt(ans==="yes"?["THANK YOU","Please tell the researcher what you noticed.","Then pull the trigger to continue."]:["THANK YOU","Pull the trigger to continue"]); }
+  prompt(ans==="yes"?["THANK YOU","Please tell the researcher what you noticed.","Then pull the trigger to continue."]:["THANK YOU","Pull the trigger to continue"]); sayOptional(ans==="yes"?"takeoff_yes":"takeoff_no"); }
 async function readyForApproaches(){ S.phase="takeoffReady"; prompt(["TEST APPROACHES NEXT","Please listen to the instructions"]);
   for(const n of READY_NARR){ await playSound(AUDIO.narr(n)); if(S.phase!=="takeoffReady") return; }
   ev("ready_instructions_end"); S.phase="waitingNext"; prompt(["READY TO BEGIN","Pull the trigger for the first approach"]); }
 // interview pause -> debriefing
 function openResearcherResults(){ S.station=false; stationResultsUI(); renderResults(); show("s-results"); $("resDebrief").style.display=(S.station||["end","declined","locked"].includes(stageOf(resultsObject())))?"none":"block"; }
-$("piNext").onclick=()=>{ ev("interview_done",{screen:"p-interview"}); READERS.debrief.reset(); show("p-debrief"); };
+// the debriefing and reveal video stay locked until the researcher confirms (with the code) that the interview is finished
+function interviewDone(){ return S.events.some(e=>e.type==="interview_done"); }
+function interviewGate(){ const done=interviewDone(), b=$("piNext"); b.disabled=!done;
+  b.textContent=done?"Start the debriefing and reveal video":"Debriefing and reveal video (unlocks after the interview)";
+  $("piHint").textContent=done?"The interview is finished. Put the headset back on and press the button when you are ready.":"This button stays locked until the researcher unlocks it after the interview.";
+  $("piCode").value=""; $("piDet").textContent=""; }
+$("piUnlock").onclick=()=>{ if(!codeOK($("piCode").value)){ $("piDet").textContent="The code was not accepted."; $("piCode").value=""; return; }
+  if(!interviewDone()) ev("interview_done",{screen:"p-interview", unlocked_by:"researcher code", note:"researcher confirmed the interview is finished; the debriefing and reveal video are unlocked"});
+  interviewGate(); const g=document.querySelector("#p-interview details.rgate"); if(g) g.open=false; $("piDet").textContent="Unlocked (logged). Hand the headset back to the participant."; };
+$("piNext").onclick=()=>{ if(!interviewDone()){ interviewGate(); return; } ev("debrief_opened",{screen:"p-interview"}); READERS.debrief.reset(); show("p-debrief"); };
 $("piEnd").onclick=()=>{ const b=$("piEnd"); if(!b.dataset.confirm){ b.dataset.confirm="1"; b.textContent="Press again to end the test without the debriefing and video"; return; }
-  b.dataset.confirm=""; b.textContent="End the test"; ev("test_ended_at_closing_screen",{screen:"p-interview", note:"ended from the closing screen; the in-headset debriefing and reveal video were not shown (give the debriefing in person)"}); ev("the_end",{screen:"p-end"}); persist(); show("p-end"); };
+  b.dataset.confirm=""; b.textContent="End the test"; ev("test_ended_at_closing_screen",{screen:"p-interview", note:"ended from the closing screen; the in-headset debriefing and reveal video were not shown (give the debriefing in person)"}); ev("the_end",{screen:"p-end"}); persist(); show("p-end"); sayOptional("the_end"); };
 $("piResults").onclick=()=>{ if(!codeOK($("piCode").value)){ $("piDet").textContent="The code was not accepted."; return; } $("piCode").value=""; openResearcherResults(); };
 $("pdbNext").onclick=()=>{ READERS.debrief.stop(); ev("debrief_confirmed",{screen:"p-debrief"}); answersReset(); show("p-answers"); };
 // answers video -> The End
@@ -1296,7 +1315,7 @@ $("answersVid").addEventListener("play",()=>{ if(!S.answersLogged){ S.answersLog
 $("answersVid").addEventListener("ended",()=>{ ev("answers_video_ended"); $("paNext").disabled=false; $("paHint").textContent="When you are ready, press Finish."; });
 $("answersVid").addEventListener("error",()=>{ ev("audio_error",{screen:"p-answers", note:"answers video could not be loaded"}); $("paHint").textContent="The video could not be loaded. The researcher can unlock the button."; });
 $("paUnlock").onclick=()=>{ if(!codeOK($("paCode").value)){ $("paGateDet").textContent="The code was not accepted."; return; } $("paCode").value=""; ev("researcher_unlock",{screen:"p-answers", reason:"researcher unlocked Finish before the video had finished"}); $("paNext").disabled=false; $("paGateDet").textContent="Unlocked (logged)."; };
-$("paNext").onclick=()=>{ $("answersVid").pause(); ev("the_end",{screen:"p-end"}); persist(); show("p-end"); };
+$("paNext").onclick=()=>{ $("answersVid").pause(); ev("the_end",{screen:"p-end"}); persist(); show("p-end"); sayOptional("the_end"); };
 
 // the participant chose to do a step outside the headset (paper, or the tablet or computer with the researcher): the researcher records it with the code.
 // Logged as <step>_outside_headset (not as an early unlock) and counted in the master log.
@@ -1503,7 +1522,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
+if(location.hash==="#debug"){ window.__debug={ interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();
