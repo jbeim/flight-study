@@ -200,9 +200,13 @@
   <button class="bigbtn quiet" id="storedBtn" style="display:none">A stored session exists for this code: open its results</button>
   <p class="note">Participant information is entered on the computer (Computer: participant form). Here you only need the code.</p>
   <h2>2 &middot; Video clips on this headset</h2>
-  <p class="note">Press the button, open the Movies folder, then select all 13 files at once: press and hold the first file until it is ticked, then tap each of the others (or use Select all in the menu if it is offered), then confirm. The order you pick them in does not matter: the app recognizes each clip by its exact file size and puts them in this participant's random order itself.</p>
+  <p class="note">If this headset offers the folder button, use it: you pick the Movies folder once, every clip loads, and the headset remembers the folder for the next participant. If it does not work, press "Choose the video files", open the Movies folder and select all 13 files at once: press and hold the first file until it is ticked, then tap each of the others (or use Select all in the menu if it is offered), then confirm. The order you pick them in does not matter either way: the app recognizes each clip by its exact file size and puts them in this participant's random order itself.</p>
+  <button class="bigbtn" id="loadClipsRemembered" style="display:none">Use the remembered clips folder</button>
+  <button class="bigbtn" id="loadClipsFolder" style="display:none">Choose the folder with the clips (all 13 at once)</button>
+  <p class="note" id="folderNote" style="display:none">If the folder button works on this headset you only pick the folder, not the files, and the headset remembers it for the next participant. If it does not work, use the button below.</p>
   <button class="bigbtn" id="loadClips">Choose the 13 video files</button>
   <input type="file" id="clipInput" multiple>
+  <input type="file" id="clipDirInput" webkitdirectory>
   <input type="file" id="clipInputAny" accept="video/mp4,video/*" multiple>
   <div id="cliplist"></div>
   <div class="picked" id="clipPicked"></div>
@@ -613,7 +617,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.6.2 (2026-09-11, the debriefing and reveal video stay locked on the closing screen until the researcher confirms the interview is finished; optional recordings 18 to 22 for the takeoff and The End; built on 2.6.1)";
+const VERSION = "study-app 2.6.3 (2026-09-11, the clips can be loaded by choosing their folder once, and the headset remembers the folder for later sessions; built on 2.6.2)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -641,7 +645,7 @@ const AUDIO = {
   papi: "audio/radio/R13_papi_advisory.mp3",
 };
 const NARR = ["01_welcome_safety","02_briefing","03_instructions","04_ready"];
-const OPTIONAL_NARR = {welcome_back:"14_welcome_back", flight_ready:"15_flight_ready", restart:"16_restart_approach", replaying:"17_replaying", takeoff_intro:"18_takeoff_intro", takeoff_question:"19_takeoff_question", takeoff_yes:"20_takeoff_yes", takeoff_no:"21_takeoff_no", the_end:"22_the_end"};   // played when the file exists; silent otherwise
+const OPTIONAL_NARR = {welcome_back:"14_welcome_back", restart:"16_restart_approach", replaying:"17_replaying", takeoff_intro:"18_takeoff_intro", takeoff_question:"19_takeoff_question", takeoff_yes:"20_takeoff_yes", takeoff_no:"21_takeoff_no", the_end:"22_the_end"};   // played when the file exists; silent otherwise
 const optionalOK={};
 let optAudio=null;
 function stopOptional(){ if(optAudio){ try{ optAudio.pause(); }catch(e){} optAudio=null; } }
@@ -920,6 +924,39 @@ function addPicked(files){ const list=[...(files||[])]; const lines=[]; let n=0;
   el.textContent = list.length ? `The file picker returned ${list.length} file(s):\n`+lines.join("\n") : "The file picker returned no files. Try again, or use the 'all files' button.";
   renderClipList(); }
 $("loadClips").onclick=()=>$("clipInput").click(); $("loadClipsAny").onclick=()=>$("clipInputAny").click();
+// ---- choosing the whole folder once, and remembering it ----
+const VIDEO_RE=/\.(mp4|m4v|mov|webm|mkv)$/i;
+function clipMsg(t){ const el=$("clipPicked"); el.style.display="block"; el.textContent=t; }
+function dirDB(){ return new Promise((res,rej)=>{ const r=indexedDB.open("study_clip_folder",1);
+  r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains("h")) r.result.createObjectStore("h"); };
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function dirSave(handle){ try{ const db=await dirDB(); await new Promise((res,rej)=>{ const t=db.transaction("h","readwrite"); t.objectStore("h").put(handle,"dir"); t.oncomplete=res; t.onerror=()=>rej(t.error); }); }catch(e){ log("could not remember the folder: "+e.message); } }
+async function dirLoad(){ try{ const db=await dirDB(); return await new Promise((res,rej)=>{ const t=db.transaction("h","readonly"); const q=t.objectStore("h").get("dir"); q.onsuccess=()=>res(q.result||null); q.onerror=()=>rej(q.error); }); }catch(e){ return null; } }
+async function loadFromDir(dir, why){ clipMsg("Reading the folder "+(dir.name||"")+" ..."); const files=[];
+  try{ for await (const ent of dir.values()){ if(ent.kind!=="file"||!VIDEO_RE.test(ent.name)) continue; try{ files.push(await ent.getFile()); }catch(e){ log("could not open "+ent.name+": "+e.message); } } }
+  catch(e){ clipMsg("The folder could not be read: "+e.message+"\nUse \"Choose the video files\" instead."); return false; }
+  if(!files.length){ clipMsg("No video files were found in that folder. Open the folder that holds the 13 clips (usually Movies)."); return false; }
+  files.sort((x,y)=>x.name.localeCompare(y.name)); addPicked(files);
+  const el=$("clipPicked"); el.textContent=`Folder: ${dir.name||"(chosen folder)"} (${why})\n`+el.textContent; log("clips loaded from folder: "+why); return true; }
+async function pickClipFolder(){ if(!window.showDirectoryPicker) return;
+  let dir; try{ dir=await window.showDirectoryPicker({id:"studyclips", mode:"read", startIn:"videos"}); }
+  catch(e){ if(e&&e.name==="AbortError") return; clipMsg("The folder chooser could not open: "+e.message+"\nUse \"Choose the video files\" instead."); return; }
+  if(await loadFromDir(dir,"chosen now")){ await dirSave(dir); folderUI(); } }
+async function useRememberedFolder(){ const dir=await dirLoad(); if(!dir){ folderUI(); return; }
+  try{ let p=await dir.queryPermission({mode:"read"}); if(p!=="granted") p=await dir.requestPermission({mode:"read"});
+    if(p!=="granted"){ clipMsg("Permission for the remembered folder was not given. Press \"Choose the folder with the clips\" again."); return; } }
+  catch(e){ clipMsg("The remembered folder could not be opened: "+e.message); return; }
+  await loadFromDir(dir,"remembered from last time"); }
+async function folderUI(){ const fsa=!!window.showDirectoryPicker, wk=("webkitdirectory" in document.createElement("input"));
+  $("loadClipsFolder").style.display=(fsa||wk)?"block":"none";
+  $("loadClipsFolder").textContent=fsa?"Choose the folder with the clips (all 13 at once)":"Choose the folder with the clips (all 13 at once, if this headset allows it)";
+  const rem=fsa?await dirLoad():null; $("loadClipsRemembered").style.display=rem?"block":"none";
+  $("folderNote").style.display=(fsa||wk)?"block":"none"; return !!rem; }
+$("loadClipsFolder").onclick=()=>{ if(window.showDirectoryPicker) pickClipFolder(); else $("clipDirInput").click(); };
+$("loadClipsRemembered").onclick=useRememberedFolder;
+$("clipDirInput").onchange=e=>{ const files=[...(e.target.files||[])].filter(f=>VIDEO_RE.test(f.name)); e.target.value="";
+  if(!files.length){ clipMsg("No video files were found in that folder. Open the folder that holds the 13 clips (usually Movies)."); return; } addPicked(files); };
+folderUI();
 $("clipInput").onchange=e=>{ addPicked(e.target.files); e.target.value=""; }; $("clipInputAny").onchange=e=>{ addPicked(e.target.files); e.target.value=""; };
 // clip playback test: can this headset's browser open each 8K file and show a picture?
 function probeClip(t,file){ return new Promise(res=>{ let done=false; const url=URL.createObjectURL(file); const t0=performance.now();
@@ -1522,7 +1559,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
+if(location.hash==="#debug"){ window.__debug={ folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();

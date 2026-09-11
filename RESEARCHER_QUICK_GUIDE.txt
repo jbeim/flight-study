@@ -1,8 +1,22 @@
-N41533 DETECTION STUDY APP, VERSION 2.6.2: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.6.3: RESEARCHER QUICK GUIDE
 (11 September 2026)
 
-WHAT CHANGED IN 2.6.2
-- The debriefing and the reveal video are LOCKED on the Thank you screen until
+WHAT CHANGED IN 2.6.3
+- Loading the clips: the setup screen now offers "Choose the folder with the
+  clips (all 13 at once)". Press it, open the Movies folder, and confirm the
+  folder; every clip is loaded, and nothing has to be ticked one by one. The
+  headset then remembers that folder, so for the next participant there is a
+  second button, "Use the remembered clips folder", which loads all 13 with one
+  press. If the headset browser does not support this, the buttons either do
+  nothing or are hidden, and the old way ("Choose the video files", select all
+  13) still works exactly as before. Nothing else about the clips changed: the
+  app still matches each file by its exact size and works out the random order
+  itself.
+- 15_flight_ready is no longer listed as a missing optional recording (it
+  belongs to the old flow), so the audio line on the setup screen should now
+  read READY with nothing after it.
+
+WHAT CHANGED IN 2.6.2- The debriefing and the reveal video are LOCKED on the Thank you screen until
   you confirm the interview is finished. The participant cannot open them on
   their own. After the interview: on the Thank you screen open "Researcher",
   type the code, press "Interview finished: unlock the debriefing and reveal
@@ -18,9 +32,8 @@ WHAT CHANGED IN 2.6.2
   debriefing and video come after it). 14, 16 and 17 (welcome back, restart,
   replaying) are there too. 06 and 07 were rebuilt: the old files were about
   16 dB too quiet to hear over the engine.
-- On the setup screen the audio line says one optional piece is not recorded:
-  15_flight_ready. That one is left over from the old flow and is not used.
-  Everything else should be found.
+- The audio line on the setup screen should read READY with every narration,
+  reading, radio call and soundtrack found, including the takeoff soundtrack.
 
 WHAT CHANGED IN 2.6
 - The participant leads the session. You set up the headset, press "Ready:
@@ -80,9 +93,12 @@ On the computer
 
 On the headset
 1. Headset: set up and run a session. Type the same code.
-2. Press "Choose the 13 video files". This opens the file browser. Open the
-   Movies folder, press and hold the first file until it is ticked, tap each
-   of the other 12 (or use Select all if the menu offers it), and confirm.
+2. Loading the clips. First choice: "Use the remembered clips folder" if it is
+   there, or "Choose the folder with the clips", which opens the Movies folder
+   and takes all 13 in one go. If neither works on this headset, press
+   "Choose the video files": open the Movies folder, press and hold the first
+   file until it is ticked, tap each of the other 12 (or use Select all if the
+   menu offers it), and confirm.
    The order you pick them in does not matter. A web page cannot open the
    headset's files by itself, so this one pick per session is the minimum;
    everything after it is automatic.
@@ -208,7 +224,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.6.2 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.6.3 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the
