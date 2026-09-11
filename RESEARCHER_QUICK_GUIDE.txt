@@ -1,18 +1,38 @@
-N41533 DETECTION STUDY APP, VERSION 2.5.2: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.6.0: RESEARCHER QUICK GUIDE
 (11 September 2026)
 
-WHAT CHANGED IN 2.5, IN ONE PARAGRAPH
-The participant now goes through every step in the headset by pressing
-buttons: Welcome, the consent form with your recorded reading, a pause to
-sign on the tablet, the briefing in the pilot lounge with your recorded
-reading, a one-minute takeoff, the approach instructions, the twelve
-approaches, a pause for the interview, the debriefing in the sunset lounge
-with your recorded reading, the "where the drones were" video, and The End.
-You do the typing on the computer: the participant form before the session,
-and the wrap-up (reports, master log, e-mail) after it. On the headset you
-only enter the code, load the clips, check calibration, and press Begin.
-The narration pieces 01 (welcome and safety) and 02 (briefing) are no longer
-played; the on-screen Welcome and the briefing reading replace them.
+WHAT CHANGED IN 2.6
+- The participant leads the session. You set up the headset, press "Ready:
+  hand the headset to the participant", and they press the large "Begin the
+  experiment" button.
+- Consent is signed on the tablet BEFORE the headset goes on. In the headset
+  the consent form is optional: they can listen to your 6-minute reading and
+  read along, or press "I previously read and signed the consent form, I
+  understand it, and I wish to participate". Either way it goes straight to
+  the briefing; no taking the headset off, no researcher code. Their choice
+  is logged. "I do not wish to take part" is also on that screen (press it
+  twice).
+- The briefing (new briefing room picture) and the debriefing still have to
+  be listened to in full before the button unlocks, and the answers video
+  has to play to the end. No code is needed for any of that.
+- The takeoff now starts at liftoff and runs about half a minute. At the end
+  the flight pauses and asks "Did you notice anything unusual during the
+  takeoff?". The participant points at YES or NO and pulls the trigger; a YES
+  asks them to tell you what they noticed. Their answer and the time they
+  took are logged. The next trigger pull goes on to the instructions.
+- Each approach is about 2 minutes: playback starts 55 seconds into each
+  clip. The clips on the headset are unchanged. The drones, the deviations,
+  the threshold crossing and the scoring all come after that point. (Advanced
+  settings has "Full clip: about 3 minutes" if you ever need it.)
+- The engine sound follows the picture smoothly. 2.5 jumped the sound back
+  into step every time it drifted by 0.08 s, which made it choppy on the
+  headset; 2.6 speeds it up or slows it down by 3% for a moment instead.
+- The interview pause after the last approach no longer needs the code: the
+  participant (or you) presses "The interview is finished: continue to the
+  debriefing". It is kept so the interview still happens before the
+  debriefing reveals the drones.
+- The setup screen shows this participant's exact run order with the file
+  each approach will play, and can save it as a text file.
 
 THE TWO PLACES THE APP RUNS
   Computer   open jbeim.github.io/flight-study in Chrome or Edge ->
@@ -27,98 +47,60 @@ On the computer
 1. Computer: participant form and wrap-up.
 2. Type the code (P01, P02 ...; no names). Date and start time are filled
    in; researcher, venue and headset are remembered from last time.
-3. Fill in what you have (certificate, instructor, hours, recent hours,
-   vision correction, VR experience, prior drone sighting, the three
-   consent answers, notes). Anything left blank can be filled in later,
-   up to the moment you lock.
-4. Save the form. It appears in the "Saved forms" list as "form only".
+3. Fill in what you have and save the form.
 
 On the headset
-1. Headset: set up and run a session.
-2. Type the same code.
-3. Choose the video files: press the button, then select all 13 files in
-   the Movies folder (the 12 approaches and the takeoff). The app now
-   recognizes each clip by its exact file size, so the names the headset's
-   file picker shows do not matter. Under the button a box lists every file
-   the picker handed over and what the app matched it to. If the box says
-   the picker returned no files, or some are "not one of the study clips",
-   use "Still missing some? Choose them from all files instead".
-4. First time on a headset, and after any browser update: press "Test that
-   this headset can open and play every clip". It opens each 8K file, jumps
-   into it and waits for a picture. Every line should read OK. If any line
-   says FAILED, copy what it says to Claude before running a participant.
-5. Nose calibration (once per headset; remembered).
-6. The line under Begin says what is still missing. It must read
-   "Everything is ready". Short test run (two approaches, _TEST on every
-   file) is the tick box just above Begin. The e-mail key, the seat
-   position and the optional participant information on the headset are
-   under "Advanced settings".
-7. Press Begin. The Welcome screen appears. Hand over the headset and the
-   controller.
+1. Headset: set up and run a session. Type the same code.
+2. Press "Choose the 13 video files". This opens the file browser. Open the
+   Movies folder, press and hold the first file until it is ticked, tap each
+   of the other 12 (or use Select all if the menu offers it), and confirm.
+   The order you pick them in does not matter. A web page cannot open the
+   headset's files by itself, so this one pick per session is the minimum;
+   everything after it is automatic.
+3. The box under the button lists every file and what it was matched to
+   (by exact file size). All 13 lines should start with OK. The other picker
+   ("photos and videos") is only a fallback: it can limit how many files you
+   select and can hand over files that do not match.
+4. "This participant's run order" now lists the takeoff and approaches 1 to
+   12 with the file each will play. Nothing needs arranging or copying.
+   "Save this order as a text file" puts it in Downloads if you want it.
+5. First time on a headset, and after any browser update: press "Test that
+   this headset can open and play every clip". Every line should read OK.
+6. Nose calibration (once per headset; remembered).
+7. The line under the Ready button must read "Everything is ready". Short
+   test run (two approaches) is the tick box just above it.
+8. Press "Ready: hand the headset to the participant". Put the headset on
+   the participant and hand them the controller.
 
-WHAT THE PARTICIPANT SEES (and what you do)
- 1 Welcome              participant presses Start
- 2 Consent form         your recording (12_consent_reading) starts; the text
-                        scrolls with the thumbstick. The "I have listened to
-                        and read the consent form" button stays locked until
-                        the recording ends.
- 3 Take off the headset the participant signs on the tablet with you. Open
-                        "Researcher", type the code, press "Consent form
-                        signed on the tablet: continue". If the person
-                        decides not to take part: type the code and press
-                        "The participant decided not to take part" twice.
-                        Nothing further is recorded; their screen thanks
-                        them. Hand the headset back.
- 4 Briefing             pilot lounge picture, your recording
-                        (11_prebriefing_reading), flight conditions, call
-                        sign, the NOTAMs, what to report, tolerances, and
-                        how the session runs. Ask your comprehension
-                        question here if you use one. The button unlocks
-                        when the recording ends; pressing it goes into the
-                        cockpit view.
- 5 Takeoff              about one minute from the takeoff roll to the climb,
-                        with engine sound. Nothing is scored.
- 6 "Test approaches next" your recordings 03 (instructions) and 04 (ready)
-                        play in the cockpit view, then "READY TO BEGIN: pull
-                        the trigger for the first approach".
- 7 Twelve approaches    as before: trigger = I see it, point and trigger =
-                        lock in, red panel behind the seat = pressed by
-                        mistake, green panel = replay. Break after
-                        approach 6 (headset off, questionnaire, Continue).
- 8 All approaches complete  headset off. Do the interview. Then open
-                        "Researcher", type the code, press "Interview
-                        finished: go to the debriefing", hand the headset
-                        back.
- 9 Debriefing           sunset lounge picture, your recording
-                        (13_debriefing_reading); the button unlocks when it
-                        ends.
-10 Where the drones were  the answers video; Finish unlocks when it ends.
-11 Thank you / The End  participant takes off the headset.
+WHAT THE PARTICIPANT SEES
+ 1 Welcome              large "Begin the experiment" button
+ 2 Consent form         optional recording, or the previously-signed button
+ 3 Briefing room        your recording (11); the button unlocks when it ends;
+                        ask your comprehension questions here
+ 4 Takeoff              from liftoff, about 33 s, then the YES/NO question
+ 5 Instructions         your recordings 03 and 04, then "pull the trigger
+                        for the first approach"
+ 6 Twelve approaches    about 2 minutes each; break after approach 6
+ 7 All approaches complete  headset off, interview, then "The interview is
+                        finished: continue to the debriefing"
+ 8 Debriefing           sunset lounge, your recording (13); unlocks at the end
+ 9 Where the drones were  answers video; Finish unlocks at the end
+10 Thank you for participating / The End
 
-LOCKED BUTTONS AND THE RESEARCHER CODE
-Every "Researcher" section needs the code. On the three readings and the
-answers video you can unlock the button early (for example if a recording
-will not play). Every early unlock is written to the log as
-researcher_unlock and counted in the master-log column researcher_unlocks.
+RESEARCHER SECTIONS (code needed, only for problems)
+The small "Researcher" sections under the briefing, debriefing and answers
+video can unlock a button early if a recording or video will not play
+(logged as researcher_unlock), or record that the participant did that step
+outside the headset (logged as briefing_outside_headset and so on). The End
+screen's Researcher section opens the results.
 
-IF THE PARTICIPANT WOULD RATHER NOT WEAR THE HEADSET FOR A STEP (2.5.2)
-Participants may do the consent form, the briefing, the debriefing or the
-answers video outside the headset, on paper or on the tablet or computer
-with you. On that screen open "Researcher", type the code and press
-"Participant did this outside the headset (logged)". What happens next:
-  Consent form      goes straight to the tablet signature step.
-  Briefing          the button unlocks; when the participant has the
-                    headset on, they press it to go to the takeoff.
-  Debriefing        the button unlocks; press it for the answers video.
-  Answers video     goes straight to The End.
-Each choice is written to the event log under its own name
-(consent_outside_headset, briefing_outside_headset,
-debrief_outside_headset, answers_outside_headset) with the reason
-"participant chose to do this outside the headset", and counted in four
-master-log columns of the same names (1 = done outside, 0 = in the
-headset). It is NOT counted as an early unlock. The written report lists
-the steps done outside the headset. Use "Unlock the button" only for a
-recording or video that will not play.
+NEW IN THE REPORTS AND MASTER LOG (2.6)
+consent_in_headset (listened in full / skipped: previously read and signed /
+done outside the headset), takeoff_question_answer (yes / no),
+takeoff_question_s (seconds to answer), run_length, run_start_s (55.055) and
+takeoff_from_s (27.027). Clip times in the reports are still measured from
+the start of each clip file, so a press at 2:00 into a 2-minute run shows as
+about 175 s.
 
 AFTER THE PARTICIPANT LEAVES
 On the headset
@@ -189,20 +171,13 @@ briefing_outside_headset, debrief_outside_headset, answers_outside_headset. The 
 for resumes. Everything else (scoring, per-card columns, issues, seat
 offset, order seed) is unchanged from 2.4.1.
 
-THE TAKEOFF CLIP (2.5.1)
+THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
-20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB, one minute: lined up on
-Runway 36, the roll, liftoff and the climb). Copy it into the headset's
-Movies folder with the twelve approach clips. 2.5.1 recognizes it by its
-size. Its soundtrack, audio/clips/TAKEOFF_audio.mp3, is on the site. How it
-was made and checked: Pass-Card Folders\00_Takeoff\00_READ_ME_Takeoff_Clip.txt.
-With the clip loaded and the soundtrack on the site, a full session can now
-begin (Short test run no longer required).
-
-STILL TO CONFIRM ON THE HEADSET
-The clip test ("Test that this headset can open and play every clip") has
-not been run on the Quest yet. It settles whether the 8K files play in the
-headset browser. Run it once before the first participant.
+20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
+whole minute from lining up to the climb; app 2.6 plays it from 27.0 s
+(liftoff) to the end, about 33 seconds, then asks the question. The start
+point is one number in the app (TAKEOFF_FROM_S) if it needs to move. How the
+clip was made and checked: Pass-Card Folders\00_Takeoff\00_READ_ME_Takeoff_Clip.txt.
 
 REPORT AN ISSUE, SEAT POSITION, SCORING, E-MAIL, DATA SAFETY
 As in the 2.4.1 guide (zz_Archive). The amber Report an issue button is
