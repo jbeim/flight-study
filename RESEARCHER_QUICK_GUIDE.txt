@@ -10,13 +10,17 @@ WHAT CHANGED IN 2.6.2
   hand the headset back and the participant presses it. The unlock is logged
   as interview_done (it is not counted as an early unlock). If the page
   reloads after the unlock, Continue goes straight to the debriefing.
-- New optional recordings (script: Audio Recordings\1 Scripts\Narration
-  Additions v4.4). 18 plays when the cockpit first appears, and the takeoff
-  waits on its first frame until it ends, so the participant is settled
-  before the bird. 19 asks the takeoff question, 20 and 21 answer YES and NO,
-  22 plays on The End. Re-recorded 04 (pull the trigger) and 10 (tells the
-  participant about the interview and that the debriefing and video come
-  after it) replace the old files. Any missing optional file stays silent.
+- New recordings, on the site since 11 September: 18 plays when the cockpit
+  first appears, and the takeoff waits on its first frame until it ends, so
+  the participant is settled before the bird. 19 asks the takeoff question,
+  20 and 21 answer YES and NO, 22 plays on The End. Re-recorded 04 (pull the
+  trigger) and 10 (tells the participant about the interview and that the
+  debriefing and video come after it). 14, 16 and 17 (welcome back, restart,
+  replaying) are there too. 06 and 07 were rebuilt: the old files were about
+  16 dB too quiet to hear over the engine.
+- On the setup screen the audio line says one optional piece is not recorded:
+  15_flight_ready. That one is left over from the old flow and is not used.
+  Everything else should be found.
 
 WHAT CHANGED IN 2.6
 - The participant leads the session. You set up the headset, press "Ready:
