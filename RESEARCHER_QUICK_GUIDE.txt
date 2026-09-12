@@ -1,8 +1,22 @@
-N41533 DETECTION STUDY APP, VERSION 2.6.3: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.6.5: RESEARCHER QUICK GUIDE
 (11 September 2026)
 
-WHAT CHANGED IN 2.6.3
-- Loading the clips: the setup screen now offers "Choose the folder with the
+WHAT CHANGED IN 2.6.5 (after the IRB approved the modification)
+- The consent form in use is now Consent Form v3. The consent text on the
+  headset screen and the recorded consent reading (recording 12) were changed
+  to match it: approaches are described as about two minutes, the takeoff
+  segment and its question are described, and the procedures say the interview
+  is followed by the debriefing and the video. Nothing else in the recording
+  was touched; only that one sentence was replaced.
+- After the video of where the drones were, the same screen now offers an
+  optional two-minute film, "Behind the scenes", about how the flights were
+  recorded and thanks to the people who helped. It is entirely optional,
+  it gates nothing, the Finish button stays available, and whether it was
+  played is recorded in the log and in the master-log column fieldwork_film
+  (watched / started / not played). If the film is not on the site, the offer
+  hides itself.
+
+WHAT CHANGED IN 2.6.3- Loading the clips: the setup screen now offers "Choose the folder with the
   clips (all 13 at once)". Press it, open the Movies folder, and confirm the
   folder; every clip is loaded, and nothing has to be ticked one by one. The
   headset then remembers that folder, so for the next participant there is a
@@ -133,7 +147,8 @@ WHAT THE PARTICIPANT SEES
                         "Start the debriefing and reveal video" (or
                         "End the test")
  8 Debriefing           sunset lounge, your recording (13); unlocks at the end
- 9 Where the drones were  answers video; Finish unlocks at the end
+ 9 Where the drones were  answers video; Finish unlocks at the end; the
+                        optional behind-the-scenes film sits under it
 10 Thank you for participating / The End
 
 RESEARCHER SECTIONS (code needed: every session on the Thank you screen, otherwise only for problems)
@@ -224,7 +239,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.6.3 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.6.5 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the
