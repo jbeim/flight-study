@@ -1,7 +1,7 @@
 APP SITE FOLDER: what to upload to GitHub (repository jbeim/flight-study)
 =========================================================================
 Upload EVERYTHING in this folder, keeping the folder structure:
-  index.html                  the study app, version 2.6.5 (2.3 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
+  index.html                  the study app, version 2.7.0 (2.3 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
   data/telemetry.js           aircraft track and drone geometry for all 12 cards (the app scores presses with it)
   media/answers_reveal.mp4    "where the drones were" video (GitHub holds the 9.6 MB web copy from Media\answers_reveal_web_9.6MB_for_GitHub)
   media/fieldwork_making_of.mp4   optional two-minute behind-the-scenes film offered after that video (9.5 MB web copy, 720p; the 1080p master, 110 MB, is kept outside this folder)

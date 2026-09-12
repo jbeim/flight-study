@@ -210,21 +210,27 @@
   <input type="file" id="clipInputAny" accept="video/mp4,video/*" multiple>
   <div id="cliplist"></div>
   <div class="picked" id="clipPicked"></div>
-  <button class="bigbtn quiet" id="loadClipsAny">Other picker (photos and videos): only if the button above does not work</button>
+  <details><summary class="note">If neither button worked</summary><button class="bigbtn quiet" id="loadClipsAny">Other picker (photos and videos)</button><p class="note">This one can limit how many files you may pick, so use it only if the buttons above do nothing.</p></details>
   <h2>This participant's run order</h2>
   <p class="note">Worked out by the app from the code. Nothing to arrange or copy on the headset: the participant simply sees the clips in this order.</p>
   <div class="picked" id="orderReport" style="display:block">Type the participant code to see the order.</div>
+  <details><summary class="note">Extra checks (save the order, test that every clip plays)</summary>
   <button class="bigbtn quiet" id="orderSave">Save this order as a text file</button>
   <button class="bigbtn quiet" id="testClips" disabled>Test that this headset can open and play every clip (about a minute)</button>
   <div class="row"><span class="tag wait" id="decTag">NOT TESTED</span><span class="lbl">Clip playback test</span><span class="det" id="decDet">run it once per headset after copying new clips</span></div>
   <div class="picked" id="decList"></div>
+</details>
 
-  <h2>3 &middot; Nose calibration</h2>
+  <h2>3 &middot; Engine sound</h2>
+<p class="note">The engine sound comes from the website, not from the video files. The headset holds the soundtracks in memory for the session, and the headset only allows sound in the flight after a button has played some, so press the button once and listen.</p>
+<div class="row"><span class="tag wait" id="sndTag">SOUND</span><span class="lbl">Engine soundtracks</span><span class="det" id="sndDet">checking...</span></div>
+<button class="bigbtn" id="sndTest">Play the engine sound now (4 seconds)</button>
+<h2>4 &middot; Nose calibration</h2>
   <div class="row"><span class="tag wait" id="calTag">NOT SET</span><span class="lbl">Where the aircraft nose is in the video</span>
     <span class="det" id="calDet">Done once per headset; remembered afterward.</span></div>
   <button class="bigbtn quiet" id="calBtn" disabled>Calibrate: enter VR, look at the nose, pull the trigger</button>
 
-  <h2>4 &middot; Checks</h2>
+  <h2>5 &middot; Checks</h2>
   <div class="row"><span class="tag wait" id="audTag">WAITING</span><span class="lbl">Narration and audio files</span><span class="det" id="audDet">checking...</span></div>
   <div class="row"><span class="tag wait" id="xrTag">WAITING</span><span class="lbl">Immersive VR available</span><span class="det" id="xrDet">checking...</span></div>
 
@@ -419,11 +425,11 @@ DLY 0800-1800 LCL.
     <p class="sub" style="font-size:1.25rem">After the interview you can put the headset back on for a short debriefing and a video that shows where the drones were.</p>
     <button class="bigbtn" id="piNext" disabled>Debriefing and reveal video (unlocks after the interview)</button>
     <p class="pnote" id="piHint">This button stays locked until the researcher unlocks it after the interview.</p>
-    <button class="bigbtn quiet" id="piEnd">End the test</button>
     <details class="rgate" style="text-align:left"><summary class="note">Researcher</summary>
       <input type="text" id="piCode" placeholder="researcher code" autocomplete="off" spellcheck="false">
       <button class="bigbtn quiet" id="piUnlock">Interview finished: unlock the debriefing and reveal video (logged)</button>
       <button class="bigbtn quiet" id="piResults">Open the researcher results screen</button>
+      <button class="bigbtn quiet" id="piEnd">End the test here (no debriefing or video in the headset)</button>
       <p class="note" id="piDet"></p>
     </details>
   </div>
@@ -448,6 +454,7 @@ DLY 0800-1800 LCL.
     <p class="eyebrow">Where the drones were</p>
     <h1>Where the drones were</h1>
     <p class="pnote">Eight of the twelve approaches had a small unmanned aircraft nearby. This short video shows each one as it came into view, with an arrow pointing to it and a close-up.</p>
+    <audio id="clipAud" preload="auto"></audio>
     <video id="answersVid" class="player" controls playsinline preload="metadata" src="media/answers_reveal.mp4"></video>
     <div class="audrow"><button class="bigbtn quiet" id="answersPlay">Play the video</button><button class="bigbtn" id="paNext" disabled>Finish</button></div>
     <p class="pnote" id="paHint">The Finish button unlocks when the video has finished.</p>
@@ -625,7 +632,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.6.5 (2026-09-12, consent screen text and consent recording updated to the approved Consent Form v3; optional two-minute behind-the-scenes film offered next to the drone-position video; built on 2.6.3)";
+const VERSION = "study-app 2.7.0 (2026-09-12, engine sound fixed: one audio player unlocked by a press before the flight and the soundtracks held in the headset, with a sound check and a silent-sound warning; clearer order check; simpler setup screen; End the test moved under Researcher)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -903,7 +910,40 @@ function interruptedSessions(){ return storedSessions().filter(resumable); }
 
 // ---------- audio ----------
 const vid = $("vid");
-let clipAudio = null; let takeoffAudioOK = false;
+const clipAudio = $("clipAud");        // ONE audio player, reused for every clip: a player that has been started once by a button press may be started again from inside the headset
+clipAudio.preservesPitch=false;
+let takeoffAudioOK = false;
+const SILENT_WAV="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+let audioPrimed=false, audioPrimeTried=0;
+// The Quest browser will not start a NEW sound from inside the immersive view: there is no button press there.
+// So the one player is started (silently) by the last button press before the flight, which leaves it allowed to play.
+function primeAudio(why){ if(audioPrimed) return; audioPrimeTried++;
+  try{ clipAudio.muted=true; clipAudio.src=SILENT_WAV; const p=clipAudio.play();
+    if(p&&p.then) p.then(()=>{ clipAudio.pause(); clipAudio.muted=false; audioPrimed=true; log("engine sound unlocked ("+(why||"")+")"); soundUI(); })
+                   .catch(e=>{ clipAudio.muted=false; log("engine sound not unlocked yet: "+e.message); });
+  }catch(e){ log("engine sound priming failed: "+e.message); } }
+const SND={}; let sndBusy=false;
+function sndCount(){ return [...CLIPS,TAKEOFF].filter(k=>SND[k]).length; }
+function sndSrc(tc){ return SND[tc]||AUDIO.clip(tc); }
+function soundUI(){ const n=sndCount(), need=CLIPS.length, t=takeoffAudioOK?1:0;
+  const ok=n>=need+t && audioPrimed;
+  tag("sndTag", sndBusy?"wait":(n>=need?(audioPrimed?"ok":"warn"):"bad"), sndBusy?"LOADING":(n>=need?(audioPrimed?"READY":"NOT UNLOCKED"):"NOT LOADED"),
+    `${n} of ${need+t} soundtracks held in the headset`+(sndBusy?", still loading":"")+(audioPrimed?"; sound is unlocked for the flight":"; press \"Play the engine sound now\" once so the headset allows sound in the flight"));
+  readyCheck(); return ok; }
+async function loadSoundtracks(){ if(sndBusy) return; sndBusy=true; soundUI();
+  for(const k of [...CLIPS,TAKEOFF]){ if(SND[k]) continue; if(k===TAKEOFF&&!takeoffAudioOK) continue;
+    try{ const r=await fetch(AUDIO.clip(k)); if(!r.ok) throw new Error("HTTP "+r.status); SND[k]=URL.createObjectURL(await r.blob()); }
+    catch(e){ log("soundtrack not loaded: "+k+" ("+e.message+")"); }
+    soundUI(); }
+  sndBusy=false; soundUI(); log("soundtracks held in the headset: "+sndCount()); }
+// warning inside the headset if a clip is playing without its sound
+function audioWatch(tc){ setTimeout(()=>{ if(S.phase!=="playing"&&S.phase!=="takeoff") return;
+  const silent=clipAudio.paused||clipAudio.currentTime<0.05||clipAudio.muted;
+  if(!silent) return;
+  ev("clip_audio_silent",{tc, paused:clipAudio.paused, at:+clipAudio.currentTime.toFixed(2)});
+  clipAudio.play().catch(()=>{});
+  setTimeout(()=>{ if((S.phase==="playing"||S.phase==="takeoff")&&(clipAudio.paused||clipAudio.currentTime<0.05)){
+    prompt(["NO ENGINE SOUND","Please tell the researcher"]); setTimeout(()=>{ if(S.phase==="playing"||S.phase==="takeoff") prompt(null); },5000); } },1200); },2500); }
 function playSound(src){ return new Promise(res=>{ const a=new Audio(src); a.onended=()=>res(true); a.onerror=()=>{ log("audio missing: "+src); res(false); }; a.play().catch(()=>{ log("audio blocked: "+src); res(false); }); }); }
 function sayAsync(src){ const a=new Audio(src); a.play().catch(()=>log("audio blocked: "+src)); return a; }
 async function checkAudio(){
@@ -988,6 +1028,19 @@ async function testClips(){ const keys=[...CLIPS,TAKEOFF].filter(k=>S.files[k]);
   t.remove(); const all=ok===keys.length; log("clip test: "+out.join(" | ")); S.clipTest={when:new Date().toISOString(), ok, total:keys.length, lines:out};
   tag("decTag",all?"ok":"bad",all?"ALL PLAY":"PROBLEM",`${ok} of ${keys.length} clips opened and showed a picture${all?"":"; see the list below and tell Claude what it says"}`); $("testClips").disabled=false; }
 $("testClips").onclick=testClips;
+// sound check: plays a real approach soundtrack through the headset so the researcher can hear it before a session
+$("sndTest").onclick=async()=>{ primeAudio("sound check"); const k=CLIPS.find(c=>SND[c])||CLIPS[0];
+  clipAudio.pause(); clipAudio.src=sndSrc(k); clipAudio.load(); clipAudio.volume=1;
+  await new Promise(res=>{ if(isFinite(clipAudio.duration)&&clipAudio.duration>0) return res(); const done=()=>{ clipAudio.removeEventListener("loadedmetadata",done); res(); }; clipAudio.addEventListener("loadedmetadata",done); setTimeout(done,4000); });
+  const dur=isFinite(clipAudio.duration)&&clipAudio.duration>0?clipAudio.duration:0;
+  try{ clipAudio.currentTime=dur?Math.min(60,dur*0.4):0; }catch(e){}
+  try{ await clipAudio.play(); tag("sndTag","wait","PLAYING","you should hear the engine now (4 seconds)");
+    const from=clipAudio.currentTime;
+    setTimeout(()=>{ const moved=clipAudio.currentTime>from+0.5; clipAudio.pause();
+      tag("sndTag",moved?"ok":"bad",moved?"SOUND OK":"NO SOUND",
+        moved?`the ${k} soundtrack played in the headset; ${sndCount()} soundtracks are held in the headset`:"the sound did not run: check the headset volume and press again");
+      ev("sound_check",{clip:k, result:moved?"played":"did not run"}); audioPrimed=audioPrimed||moved; readyCheck(); },4000);
+  }catch(e){ tag("sndTag","bad","BLOCKED","the headset refused to play the sound: "+e.message); ev("sound_check",{clip:k, result:"blocked", message:e.message}); } };
 function renderOrderReport(){ const el=$("orderReport"); if(!el) return; const c=$("pcode").value.trim().toUpperCase();
   if(c.length<2){ el.textContent="Type the participant code to see the order."; return ""; }
   let order=seededOrder(c); const test=$("setTest").checked; if(test) order=order.slice(0,2);
@@ -997,7 +1050,18 @@ function renderOrderReport(){ const el=$("orderReport"); if(!el) return; const c
   order.forEach((tc,i)=>{ const f=S.files[tc]; lines.push(`${String(i+1).padStart(2," ")}. ${tc}  ${f?"file: "+f.name:"NOT LOADED"}${(!test&&i+1===BREAK_AFTER)?"   -> break after this one":""}`); });
   lines.push(``,`Order method: ${ORDER_METHOD}; seed ${orderSeed(c)}.`); el.textContent=lines.join("\n"); return lines.join("\r\n"); }
 $("orderSave").onclick=()=>{ const t=renderOrderReport(); const c=$("pcode").value.trim().toUpperCase(); if(!t) return; download(`${c}_run_order_${stamp()}.txt`, t+"\r\n", "text/plain"); };
-function readyCheck(){ renderOrderReport(); const miss=[]; const test=$("setTest").checked; if($("pcode").value.trim().length<2) miss.push("participant code"); if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(!test&&!S.files[TAKEOFF]) miss.push("the takeoff clip (or tick Short test run)"); if(!test&&!takeoffAudioOK&&audOK) miss.push("the takeoff soundtrack on the site (or tick Short test run)"); if(S.noseOffset===null) miss.push("nose calibration"); if(!audOK) miss.push("audio files");
+function orderCheck(){ const test=$("setTest").checked; const c=$("pcode").value.trim().toUpperCase();
+  let order=c.length>=2?seededOrder(c):[]; if(test) order=order.slice(0,2);
+  const files=order.map(tc=>S.files[tc]&&S.files[tc].name).filter(Boolean); const uniq=new Set(files);
+  const missing=order.filter(tc=>!S.files[tc]);
+  const codeOk=c.length>=2;
+  if(!codeOk||!order.length){ tag("orderTag","wait","ORDER","type the participant code to work out this participant\u2019s order"); return false; }
+  if(missing.length){ tag("orderTag","bad","NOT READY","no file yet for "+missing.join(", ")); return false; }
+  if(uniq.size!==files.length){ tag("orderTag","bad","CHECK FILES","the same file is used twice; load the clips again"); return false; }
+  const tk=S.files[TAKEOFF]?"; takeoff clip loaded":(test?"; no takeoff clip (short test run)":"; TAKEOFF CLIP MISSING");
+  tag("orderTag","ok","ORDER READY",`${order.length} approaches in a random order for ${c}, ${uniq.size} different files, each matched by its exact size${tk}`); return true; }
+function readyCheck(){ renderOrderReport(); orderCheck(); const miss=[]; const test=$("setTest").checked; if($("pcode").value.trim().length<2) miss.push("participant code"); if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(!test&&!S.files[TAKEOFF]) miss.push("the takeoff clip (or tick Short test run)"); if(!test&&!takeoffAudioOK&&audOK) miss.push("the takeoff soundtrack on the site (or tick Short test run)"); if(S.noseOffset===null) miss.push("nose calibration"); if(!audOK) miss.push("audio files");
+  if(sndCount()<CLIPS.length) miss.push("the engine soundtracks in the headset (section 3)"); else if(!audioPrimed) miss.push("the sound check in section 3 (press it once so the headset allows sound in the flight)");
   $("beginBtn").disabled=miss.length>0; $("readyDet").textContent = miss.length? "Waiting for: "+miss.join(", ") : "Everything is ready. Press Ready, then hand the headset and controller to the participant: they press Begin the experiment."; }
 $("pcode").oninput=()=>{ const c=$("pcode").value.trim().toUpperCase(); if(c.length>=2){ tag("orderTag","ok","SEEDED",seededOrder(c).join("  ")); } else { tag("orderTag","wait","ORDER","enter a code to see this participant's order"); }
   let stored=null; try{ stored=localStorage.getItem("study_"+c)||localStorage.getItem("study_"+c+"_TEST"); }catch(e){} $("storedBtn").style.display=stored?"block":"none";
@@ -1009,7 +1073,7 @@ $("pcode").oninput=()=>{ const c=$("pcode").value.trim().toUpperCase(); if(c.len
   readyCheck(); };
 function restoreStored(R){ S.code=R.participant; S.order=R.order; S.orderSeed=R.orderSeed!=null?R.orderSeed:orderSeed(R.participant.replace(/_TEST$/,"")); S.started=R.started; S.events=R.events; S.testMode=!!R.testMode; S.info=R.info||{}; S.seat=R.seatOffset||S.seat;
   if(S.noseOffset===null&&R.noseOffsetDeg!=null) S.noseOffset=R.noseOffsetDeg; S.answersLogged=R.events.some(e=>e.type==="answers_video_played"); infoUI(); }
-$("continueBtn").onclick=async()=>{ const c=$("pcode").value.trim().toUpperCase(); let R=null; try{ R=JSON.parse(localStorage.getItem("study_"+c)||localStorage.getItem("study_"+c+"_TEST")); }catch(e){} if(!R||!R.events) return;
+$("continueBtn").onclick=async()=>{ primeAudio("continue an interrupted session"); const c=$("pcode").value.trim().toUpperCase(); let R=null; try{ R=JSON.parse(localStorage.getItem("study_"+c)||localStorage.getItem("study_"+c+"_TEST")); }catch(e){} if(!R||!R.events) return;
   const st=stageOf(R); const needClips=["consent","sign","briefing","takeoff","approaches"].includes(st); const miss=[];   // the flight is still ahead: the clips and calibration must be back before continuing
   if(needClips){ if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(st!=="approaches"&&!S.files[TAKEOFF]&&!R.testMode) miss.push("the takeoff clip"); if(S.noseOffset===null) miss.push("nose calibration"); }
   if(!audOK) miss.push("audio files");
@@ -1034,7 +1098,7 @@ $("storedBtn").onclick=()=>{ const c=$("pcode").value.trim().toUpperCase(); let 
   restoreStored(R); S.idx=R.order.length-1; S.phase=R.events.some(e=>e.type==="session_end")?"done":"interrupted_stored";
   if(S.phase!=="done"){ const p=progressOf(R); if(p.completed===p.total){ S.idx=-1; ev("session_end",{note:"added when the stored session was reopened: every approach had finished but the browser stopped before the closing screen"}); S.idx=R.order.length-1; S.phase="done"; } }
   renderResults(); if(S.phase!=="done") tag("lockTag","warn","INCOMPLETE","this stored session did not reach the end; files can be saved, locking is not allowed"); show("s-results"); window.scrollTo(0,0); };
-$("homeConfig").onclick=()=>{ show("s-setup"); };
+$("homeConfig").onclick=()=>{ show("s-setup"); loadSoundtracks(); };
 $("consentBack").addEventListener("click",homeContinueUI); $("setupBack").addEventListener("click",homeContinueUI); $("homeConsent").onclick=()=>{ show("s-consent"); window.scrollTo(0,0); };
 $("consentBack").onclick=()=>{ show("s-home"); window.scrollTo(0,0); }; $("setupBack").onclick=()=>show("s-home");
 
@@ -1204,12 +1268,15 @@ async function startClip(){
   const okLoad=await loadClip(tc);
   if(!okLoad){ ev("clip_error",{tc, message:"clip did not open"}); prompt(["CLIP DID NOT OPEN",tc+": press the trigger to go on to the next approach"]); S.phase="waitingNext"; return; }
   await seekVid(runStart());
-  if(clipAudio){ clipAudio.pause(); } clipAudio=new Audio(AUDIO.clip(tc)); clipAudio.preload="auto"; clipAudio.preservesPitch=false;
+  clipAudio.pause(); clipAudio.src=sndSrc(tc); clipAudio.preservesPitch=false; clipAudio.load();
   alignNoseToView(); placePanels(); applySeat(); prompt(null); S.sightingSeq=0;
   S.phase="playing"; S.clipStartWall=performance.now(); ev("clip_start",{tc, target:TARGET[tc], position:S.idx+1});
   if(S.restartPending===tc){ const prev=S.events.filter(e=>e.clip===tc&&e.type!=="clip_start"&&e.clipTime!=null); const from=prev.length?prev[prev.length-1].clipTime:null;
     S.sightingSeq=S.events.filter(e=>e.type==="detection"&&e.clip===tc).length; ev("replay",{reason:"approach restarted from its beginning after a reload or crash", from_clip_time_s:from, sighting:S.sightingSeq, pending_pointing:false}); S.restartPending=null; }
-  vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio); clipAudio.play().catch(()=>log("clip audio blocked")); }).catch(e=>log("video play failed "+e.message));
+  vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio);
+      clipAudio.play().then(()=>ev("clip_audio_start",{tc, source:SND[tc]?"held in the headset":"from the website"}))
+                      .catch(e=>{ log("clip audio blocked: "+e.message); ev("clip_audio_blocked",{tc, message:e.message}); });
+      audioWatch(tc); }).catch(e=>log("video play failed "+e.message));
   if(S.idx===0){ setTimeout(()=>{ if(S.phase==="playing") { sayAsync(AUDIO.papi); ev("papi_advisory_played"); } },3000); }
 }
 // soundtrack sync: 2.5 jumped the soundtrack every time it drifted 80 ms from the picture, which on the headset made the sound choppy.
@@ -1264,7 +1331,7 @@ async function finishSession(){ S.phase="done"; prompt(["ALL APPROACHES COMPLETE
   setTimeout(()=>{ if(xrSession) xrSession.end(); else if(flat){ renderer.domElement.style.display="none"; } show("p-interview"); },1500); }
 
 // ---------- participant intro ----------
-$("beginBtn").onclick=async()=>{ S.code=$("pcode").value.trim().toUpperCase(); S.order=seededOrder(S.code);
+$("beginBtn").onclick=async()=>{ primeAudio("Ready"); S.code=$("pcode").value.trim().toUpperCase(); S.order=seededOrder(S.code);
   try{ for(const k of ["study_"+S.code,"study_"+S.code+"_TEST"]){ const old=localStorage.getItem(k); if(!old) continue; const R=JSON.parse(old); if(R&&R.events&&!R.events.some(e=>e.type==="study_locked")){ const ak="study_archive_"+k.slice(6)+"_"+stamp(); localStorage.setItem(ak,old); localStorage.removeItem(k); log("unfinished stored session for "+k.slice(6)+" moved to "+ak+" (Begin starts a new session; use Continue to resume an unfinished one)"); } } }catch(e){} S.testMode=$("setTest").checked; if(S.testMode){ S.order=S.order.slice(0,2); S.code=S.code.replace(/_TEST$/,"")+"_TEST"; }
   const keep=S.events.filter(e=>e.type==="issue"||e.type==="participant_info"); // notes made on the setup screen before Begin stay with this session
   S.started=new Date().toISOString(); S.events=keep.map((e,i)=>Object.assign({},e,{seq:i+1})); S.idx=-1; S.sightingSeq=0; S.answersLogged=false; fieldLogged=false; S.interruptedPhase=null;
@@ -1304,7 +1371,7 @@ const READERS={
   debrief: makeReader({name:"debrief", screen:"p-debrief", src:AUDIO.narr(READING.debrief), bar:"pdbBar", time:"pdbTime", play:"pdbPlay", next:"pdbNext", hint:"pdbHint", code:"pdbCode", unlockBtn:"pdbUnlock", gateDet:"pdbGateDet", startLabel:"Start the debriefing", idleText:"debriefing not started", lockText:"The button unlocks when the debriefing recording has finished.", doneText:"When you are ready, press the button to see where the drones were."})
 };
 // Welcome -> consent reading (the participant's own press starts the sound)
-$("pwStart").onclick=()=>{ ev("participant_start",{screen:"p-welcome"}); READERS.consent.reset(); $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-consent"); };
+$("pwStart").onclick=()=>{ primeAudio("Begin the experiment"); ev("participant_start",{screen:"p-welcome"}); READERS.consent.reset(); $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-consent"); };
 function toBriefing(){ READERS.briefing.reset(); show("p-brief"); }
 $("pcNext").onclick=()=>{ READERS.consent.stop(); ev("consent_read_confirmed",{screen:"p-consent"}); toBriefing(); };
 $("pcSkip").onclick=()=>{ READERS.consent.stop(); ev("consent_previously_signed",{screen:"p-consent", note:"participant confirmed they previously read and signed the consent form, understand it, and wish to participate"}); toBriefing(); };
@@ -1318,18 +1385,21 @@ $("psDeclined").onclick=()=>{ if(!codeOK($("psCode").value)){ $("psDet").textCon
   $("psCode").value=""; ev("consent_declined",{screen:"p-sign", note:"participant chose not to take part; no study procedures were run"}); S.phase="done"; ev("session_end",{note:"participant declined at consent"}); show("p-declined"); };
 $("pdOpen").onclick=()=>{ if(!codeOK($("pdCode").value)){ $("pdDet").textContent="The code was not accepted."; return; } $("pdCode").value=""; openResearcherResults(); };
 // briefing -> takeoff in the headset
-$("pbNext").onclick=async()=>{ READERS.briefing.stop(); ev("briefing_confirmed",{screen:"p-brief"}); ev("enter_flight_pressed");
+$("pbNext").onclick=async()=>{ primeAudio("briefing continue"); READERS.briefing.stop(); ev("briefing_confirmed",{screen:"p-brief"}); ev("enter_flight_pressed");
   const ok=await enterXR(()=>startTakeoff()); if(ok) document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); else ev("enter_flight_failed"); };
 async function startTakeoff(){ S.idx=-1; S.phase="loading";
   if(!S.files[TAKEOFF]){ ev("takeoff_skipped",{reason:"takeoff clip not loaded", tc:TAKEOFF}); return readyForApproaches(); }
   prompt(["TAKEOFF","loading..."]); const ok=await loadClip(TAKEOFF);
   if(!ok){ ev("takeoff_error",{message:"takeoff clip did not open", tc:TAKEOFF}); return readyForApproaches(); }
   await seekVid(TAKEOFF_FROM_S);
-  if(clipAudio) clipAudio.pause(); clipAudio=new Audio(AUDIO.clip(TAKEOFF)); clipAudio.preload="auto"; clipAudio.preservesPitch=false;
+  clipAudio.pause(); clipAudio.src=sndSrc(TAKEOFF); clipAudio.preservesPitch=false; clipAudio.load();
   alignNoseToView(); placePanels(); applySeat();
   if(OPTIONAL_NARR.takeoff_intro&&optionalOK[OPTIONAL_NARR.takeoff_intro]!==false){ prompt(["TAKEOFF","Look around as you normally would"]); const played=await sayOptionalWait("takeoff_intro",()=>ev("takeoff_intro_start",{tc:TAKEOFF, video_time_s:+vid.currentTime.toFixed(3), video_waiting:vid.paused})); if(played) ev("takeoff_intro_end",{tc:TAKEOFF}); if(S.phase!=="loading") return; }
   prompt(null); S.phase="takeoff"; ev("takeoff_start",{tc:TAKEOFF, from_clip_time_s:TAKEOFF_FROM_S, to_clip_time_s:TAKEOFF_TO_S});
-  vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio); clipAudio.play().catch(()=>log("takeoff audio blocked")); }).catch(e=>log("takeoff video play failed "+e.message)); }
+  vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio);
+      clipAudio.play().then(()=>ev("clip_audio_start",{tc:TAKEOFF, source:SND[TAKEOFF]?"held in the headset":"from the website"}))
+                      .catch(e=>{ log("takeoff audio blocked: "+e.message); ev("clip_audio_blocked",{tc:TAKEOFF, message:e.message}); });
+      audioWatch(TAKEOFF); }).catch(e=>log("takeoff video play failed "+e.message)); }
 // after the takeoff: "Did you notice anything unusual?" answered by pointing at YES or NO, then the participant continues
 function takeoffQuestion(){ S.phase="takeoffQuestion"; ev("takeoff_question_asked",{tc:TAKEOFF});
   prompt(["DID YOU NOTICE ANYTHING UNUSUAL","during the takeoff?","Point at YES or NO, then pull the trigger"]); if(yesPanel){ yesPanel.visible=true; noPanel.visible=true; } sayOptional("takeoff_question"); }
@@ -1577,7 +1647,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
+if(location.hash==="#debug"){ window.__debug={ SND, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();

@@ -1,5 +1,32 @@
-N41533 DETECTION STUDY APP, VERSION 2.6.5: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.7.0: RESEARCHER QUICK GUIDE
 (11 September 2026)
+
+WHAT CHANGED IN 2.7.0 (engine sound, and a simpler setup screen)
+- ENGINE SOUND FIXED. In the first headset run the approaches were silent. The
+  reason: the headset browser will not start a new sound from inside the
+  immersive view, because a trigger pull there does not count as a button press.
+  The app now uses one sound player for every clip, and that player is started
+  (silently) by a button press before the flight, which leaves it allowed to
+  play inside the headset. The soundtracks are also downloaded into the headset
+  at setup, so a weak Wi-Fi signal during a session cannot silence them.
+- NEW STEP 3 ON THE SETUP SCREEN: "Play the engine sound now (4 seconds)".
+  Press it and listen. It plays a real approach soundtrack and then says
+  SOUND OK, NO SOUND or BLOCKED, and the result goes into the log. The Ready
+  button stays locked until the soundtracks are loaded and this check has run.
+- If a clip ever plays without its sound, the headset shows "NO ENGINE SOUND,
+  please tell the researcher" and the log records it (clip_audio_silent).
+- ORDER CHECK: the line at the top of the setup screen now reads ORDER READY
+  with a plain sentence, for example "12 approaches in a random order for P07,
+  12 different files, each matched by its exact size; takeoff clip loaded". It
+  reads NOT READY and names the missing card if a file is absent, and CHECK
+  FILES if the same file was matched twice. Everything is decided on the
+  headset; the computer is not needed at the venue.
+- SIMPLER SCREEN: the setup screen now has five numbered steps and one main
+  button in each. The fallback picker sits under "If neither button worked",
+  and saving the order and the clip playback test sit under "Extra checks".
+- On the participant's closing screen there is now ONE button, the debriefing
+  and reveal video. "End the test here" moved into the small Researcher
+  section on that screen; it still needs no code.
 
 WHAT CHANGED IN 2.6.5 (after the IRB approved the modification)
 - The consent form in use is now Consent Form v3. The consent text on the
@@ -107,7 +134,7 @@ On the computer
 
 On the headset
 1. Headset: set up and run a session. Type the same code.
-2. Loading the clips. First choice: "Use the remembered clips folder" if it is
+2. Loading the clips (step 2 on the screen). First choice: "Use the remembered clips folder" if it is
    there, or "Choose the folder with the clips", which opens the Movies folder
    and takes all 13 in one go. If neither works on this headset, press
    "Choose the video files": open the Movies folder, press and hold the first
@@ -125,7 +152,9 @@ On the headset
    "Save this order as a text file" puts it in Downloads if you want it.
 5. First time on a headset, and after any browser update: press "Test that
    this headset can open and play every clip". Every line should read OK.
-6. Nose calibration (once per headset; remembered).
+6. Step 3, engine sound: wait for the soundtracks to load, then press "Play
+   the engine sound now" and listen. It must say SOUND OK.
+7. Nose calibration (once per headset; remembered).
 7. The line under the Ready button must read "Everything is ready". Short
    test run (two approaches) is the tick box just above it.
 8. Press "Ready: hand the headset to the participant". Put the headset on
@@ -239,7 +268,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.6.5 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.7.0 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the
