@@ -4,7 +4,7 @@ Upload EVERYTHING in this folder, keeping the folder structure:
   index.html                  the study app, version 2.6.5 (2.3 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
   data/telemetry.js           aircraft track and drone geometry for all 12 cards (the app scores presses with it)
   media/answers_reveal.mp4    "where the drones were" video (GitHub holds the 9.6 MB web copy from Media\answers_reveal_web_9.6MB_for_GitHub)
-  media/fieldwork_making_of.mp4   optional two-minute behind-the-scenes film offered after that video (16 MB web copy, 720p; the 1080p master is kept outside this folder)
+  media/fieldwork_making_of.mp4   optional two-minute behind-the-scenes film offered after that video (9.5 MB web copy, 720p; the 1080p master, 110 MB, is kept outside this folder)
   test.html                   the earlier playback test page
   audio/narration/*.mp3       Jason's narration. 01 and 02 are no longer played by 2.5 but can stay.
                               04, 06, 07, 10 replaced 11 Sep 2026; 14, 16, 17 and 18 to 22 added the same day.
