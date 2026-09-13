@@ -200,7 +200,7 @@
   <button class="bigbtn quiet" id="storedBtn" style="display:none">A stored session exists for this code: open its results</button>
   <p class="note">Participant information is entered on the computer (Computer: participant form). Here you only need the code.</p>
   <h2>2 &middot; Video clips on this headset</h2>
-  <p class="note">If this headset offers the folder button, use it: you pick the Movies folder once, every clip loads, and the headset remembers the folder for the next participant. If it does not work, press "Choose the video files", open the Movies folder and select all 13 files at once: press and hold the first file until it is ticked, then tap each of the others (or use Select all in the menu if it is offered), then confirm. The order you pick them in does not matter either way: the app recognizes each clip by its exact file size and puts them in this participant's random order itself.</p>
+  <p class="note">If this headset offers the folder button, use it: you pick the Movies folder once, every clip loads, and the headset remembers the folder for the next participant. If it does not work, press "Choose the video files", open the Movies folder and select all 13 files at once: press and hold the first file until it is ticked, then tap each of the others (or use Select all in the menu if it is offered), then confirm. The order you pick them in does not matter either way: the app recognizes each clip by its exact file size and puts them in this participant's random order itself. Each clip is checked against the exact size of the finished file, so an older version left on the headset is caught and named here instead of being used by mistake.</p>
   <button class="bigbtn" id="loadClipsRemembered" style="display:none">Use the remembered clips folder</button>
   <button class="bigbtn" id="loadClipsFolder" style="display:none">Choose the folder with the clips (all 13 at once)</button>
   <p class="note" id="folderNote" style="display:none">If the folder button works on this headset you only pick the folder, not the files, and the headset remembers it for the next participant. If it does not work, use the button below.</p>
@@ -632,7 +632,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.7.0 (2026-09-12, engine sound fixed: one audio player unlocked by a press before the flight and the soundtracks held in the headset, with a sound check and a silent-sound warning; clearer order check; simpler setup screen; End the test moved under Researcher)";
+const VERSION = "study-app 2.7.1 (2026-09-13, wrong clip versions now caught: a clip recognised only by its file name is named on screen and blocks the run; the setup screen lists how every clip was matched)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -882,7 +882,7 @@ function seededOrder(code){ const rnd=mulberry32(orderSeed(code)); const a=CLIPS
 
 // ---------- session state ----------
 const S = { code:"", order:[], files:{}, idx:-1, phase:"setup", events:[], started:null, noseOffset:null,
-            clipStartWall:null, sightingSeq:0, awaitingPoint:false, lastDetection:null, info:{}, interruptedPhase:null, seat:"seat", orderSeed:null };
+            clipStartWall:null, sightingSeq:0, awaitingPoint:false, lastDetection:null, info:{}, interruptedPhase:null, seat:"seat", orderSeed:null, match:{} };
 function localStamp(d){ d=d||new Date(); const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
 function ev(type, extra){ const now=new Date(); const e=Object.assign({ seq:S.events.length+1, type, wall:now.toISOString(), local:localStamp(now),
     t_ms:Math.round(performance.now()), clip:S.idx>=0?S.order[S.idx]:null, clipIndex:S.idx>=0?S.idx+1:null,
@@ -962,14 +962,18 @@ async function checkAudio(){
 // ---------- clip files ----------
 function renderClipList(){ const el=$("cliplist"); el.innerHTML="";
   for(const tc of [...CLIPS,TAKEOFF]){ const f=S.files[tc]; const r=document.createElement("div"); r.className="row";
-    r.innerHTML=`<span class="tag ${f?"ok":"wait"}">${f?"OK":"--"}</span><span class="lbl">${tc==="TAKEOFF"?"Takeoff":tc}</span><span class="det">${f?(f.size/1e9).toFixed(2)+" GB":"not loaded"}</span>`; el.appendChild(r); }
+    const bad=f&&S.match[tc]!=="exact size";
+    r.innerHTML=`<span class="tag ${f?(bad?"bad":"ok"):"wait"}">${f?(bad?"WRONG":"OK"):"--"}</span><span class="lbl">${tc==="TAKEOFF"?"Takeoff":tc}</span><span class="det">${f?(f.size/1e9).toFixed(2)+" GB"+(bad?" - WRONG VERSION: matched by file name only, not by its size. Copy the finished "+(tc==="TAKEOFF"?"takeoff clip":tc)+" to the headset again.":" - matched by its exact size"):"not loaded"}</span>`; el.appendChild(r); }
   const n=CLIPS.filter(k=>S.files[k]).length, t=S.files[TAKEOFF]?1:0;
   $("loadClips").textContent = (n===12&&t) ? "All 13 video files loaded" : `Choose the video files (${n} of 12 approaches${t?" and the takeoff":", takeoff not yet"} loaded)`;
   $("calBtn").disabled = !S.files[CLIPS[0]]; $("testClips").disabled = !(n+t); readyCheck(); }
+function expectedBytes(tc){ for(const b in CLIP_BYTES) if(CLIP_BYTES[b]===tc) return +b; return 0; }
+function nameOnly(){ return [...CLIPS,TAKEOFF].filter(k=>S.files[k]&&S.match[k]!=="exact size"); }
 function addPicked(files){ const list=[...(files||[])]; const lines=[]; let n=0;
   for(const f of list){ let k=CLIP_BYTES[f.size]||null, how="exact size"; const m=f.name.match(/TC(\d\d)/i); const byName=m&&CLIPS.includes("TC"+m[1].padStart(2,"0"))?"TC"+m[1]:(/TAKEOFF/i.test(f.name)?TAKEOFF:null);
-    let warn=""; if(k&&byName&&byName!==k) warn=`  (the name says ${byName}; the size wins)`; if(!k&&byName){ k=byName; how="file name"; }
-    if(k){ S.files[k]=f; n++; } lines.push(`${k?"OK ":"?? "} ${f.name}  ${(f.size/1e9).toFixed(3)} GB  ${k?"= "+k+" (by "+how+")"+warn:"= not one of the study clips"}`); }
+    let warn=""; if(k&&byName&&byName!==k) warn=`  (the name says ${byName}; the size wins)`; if(!k&&byName){ k=byName; how="file name"; warn=`  <-- WRONG VERSION: the name says ${byName} but the size is not the size of the finished ${byName}; expected ${expectedBytes(byName).toLocaleString()} bytes, this file is ${f.size.toLocaleString()}`; }
+    if(k){ S.files[k]=f; S.match[k]=how; n++; } lines.push(`${k?(how==="exact size"?"OK ":"BAD"):"?? "} ${f.name}  ${(f.size/1e9).toFixed(3)} GB  ${k?"= "+k+" (by "+how+")"+warn:"= not one of the study clips"}`); }
+  const bad0=nameOnly(); if(bad0.length) { log("WRONG CLIP VERSION: "+bad0.join(", ")+" matched by file name only"); try{ ev("clip_wrong_version",{clips:bad0, note:"matched by file name, not by exact size"}); }catch(e){} }
   log(`file picker returned ${list.length} file(s); ${n} recognized`); const el=$("clipPicked"); el.style.display="block";
   el.textContent = list.length ? `The file picker returned ${list.length} file(s):\n`+lines.join("\n") : "The file picker returned no files. Try again, or use the 'all files' button.";
   renderClipList(); }
@@ -1046,8 +1050,8 @@ function renderOrderReport(){ const el=$("orderReport"); if(!el) return; const c
   let order=seededOrder(c); const test=$("setTest").checked; if(test) order=order.slice(0,2);
   const rs=runStart(); const fmtT=t=>`${Math.floor(t/60)}:${String(Math.round(t%60)).padStart(2,"0")}`;
   const lines=[`Participant ${c}${test?" (SHORT TEST RUN: first 2 approaches, files named "+c+"_TEST)":""}`, `Approach length: ${S.run==="full"?"full clip, about 3 minutes":"about 2 minutes (each clip starts at "+fmtT(rs)+")"}`, ``,
-    `Takeoff  ${fmtT(TAKEOFF_FROM_S)} to ${fmtT(TAKEOFF_TO_S)} of the takeoff clip (about ${Math.round(TAKEOFF_TO_S-TAKEOFF_FROM_S)} s, includes the bird), then the question "Did you notice anything unusual?"  file: ${S.files[TAKEOFF]?S.files[TAKEOFF].name:"NOT LOADED"}`];
-  order.forEach((tc,i)=>{ const f=S.files[tc]; lines.push(`${String(i+1).padStart(2," ")}. ${tc}  ${f?"file: "+f.name:"NOT LOADED"}${(!test&&i+1===BREAK_AFTER)?"   -> break after this one":""}`); });
+    `Takeoff  ${fmtT(TAKEOFF_FROM_S)} to ${fmtT(TAKEOFF_TO_S)} of the takeoff clip (about ${Math.round(TAKEOFF_TO_S-TAKEOFF_FROM_S)} s, includes the bird), then the question "Did you notice anything unusual?"  file: ${S.files[TAKEOFF]?S.files[TAKEOFF].name+(S.match[TAKEOFF]==="exact size"?"  (matched by its exact size)":"  (*** WRONG VERSION: matched by file name only ***)"):"NOT LOADED"}`];
+  order.forEach((tc,i)=>{ const f=S.files[tc]; const mm=f?(S.match[tc]==="exact size"?"  (matched by its exact size)":"  (*** WRONG VERSION: matched by file name only ***)"):""; lines.push(`${String(i+1).padStart(2," ")}. ${tc}  ${f?"file: "+f.name:"NOT LOADED"}${mm}${(!test&&i+1===BREAK_AFTER)?"   -> break after this one":""}`); });
   lines.push(``,`Order method: ${ORDER_METHOD}; seed ${orderSeed(c)}.`); el.textContent=lines.join("\n"); return lines.join("\r\n"); }
 $("orderSave").onclick=()=>{ const t=renderOrderReport(); const c=$("pcode").value.trim().toUpperCase(); if(!t) return; download(`${c}_run_order_${stamp()}.txt`, t+"\r\n", "text/plain"); };
 function orderCheck(){ const test=$("setTest").checked; const c=$("pcode").value.trim().toUpperCase();
@@ -1058,9 +1062,10 @@ function orderCheck(){ const test=$("setTest").checked; const c=$("pcode").value
   if(!codeOk||!order.length){ tag("orderTag","wait","ORDER","type the participant code to work out this participant\u2019s order"); return false; }
   if(missing.length){ tag("orderTag","bad","NOT READY","no file yet for "+missing.join(", ")); return false; }
   if(uniq.size!==files.length){ tag("orderTag","bad","CHECK FILES","the same file is used twice; load the clips again"); return false; }
+  const bad=nameOnly(); if(bad.length){ tag("orderTag","bad","WRONG CLIP VERSION",`${bad.join(", ")} ${bad.length===1?"is":"are"} not the finished clip${bad.length===1?"":"s"}: the file name is right but the size is not. The headset is holding an older version. Copy ${bad.length===1?"it":"them"} from the Pass-Card folders again, then load the clips again.`); return false; }
   const tk=S.files[TAKEOFF]?"; takeoff clip loaded":(test?"; no takeoff clip (short test run)":"; TAKEOFF CLIP MISSING");
   tag("orderTag","ok","ORDER READY",`${order.length} approaches in a random order for ${c}, ${uniq.size} different files, each matched by its exact size${tk}`); return true; }
-function readyCheck(){ renderOrderReport(); orderCheck(); const miss=[]; const test=$("setTest").checked; if($("pcode").value.trim().length<2) miss.push("participant code"); if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(!test&&!S.files[TAKEOFF]) miss.push("the takeoff clip (or tick Short test run)"); if(!test&&!takeoffAudioOK&&audOK) miss.push("the takeoff soundtrack on the site (or tick Short test run)"); if(S.noseOffset===null) miss.push("nose calibration"); if(!audOK) miss.push("audio files");
+function readyCheck(){ renderOrderReport(); orderCheck(); const miss=[]; const test=$("setTest").checked; if($("pcode").value.trim().length<2) miss.push("participant code"); if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(nameOnly().length) miss.push("the finished version of "+nameOnly().join(", ")+" (the headset is holding an older version; see the red line in section 2)"); if(!test&&!S.files[TAKEOFF]) miss.push("the takeoff clip (or tick Short test run)"); if(!test&&!takeoffAudioOK&&audOK) miss.push("the takeoff soundtrack on the site (or tick Short test run)"); if(S.noseOffset===null) miss.push("nose calibration"); if(!audOK) miss.push("audio files");
   if(sndCount()<CLIPS.length) miss.push("the engine soundtracks in the headset (section 3)"); else if(!audioPrimed) miss.push("the sound check in section 3 (press it once so the headset allows sound in the flight)");
   $("beginBtn").disabled=miss.length>0; $("readyDet").textContent = miss.length? "Waiting for: "+miss.join(", ") : "Everything is ready. Press Ready, then hand the headset and controller to the participant: they press Begin the experiment."; }
 $("pcode").oninput=()=>{ const c=$("pcode").value.trim().toUpperCase(); if(c.length>=2){ tag("orderTag","ok","SEEDED",seededOrder(c).join("  ")); } else { tag("orderTag","wait","ORDER","enter a code to see this participant's order"); }
@@ -1075,7 +1080,7 @@ function restoreStored(R){ S.code=R.participant; S.order=R.order; S.orderSeed=R.
   if(S.noseOffset===null&&R.noseOffsetDeg!=null) S.noseOffset=R.noseOffsetDeg; S.answersLogged=R.events.some(e=>e.type==="answers_video_played"); infoUI(); }
 $("continueBtn").onclick=async()=>{ primeAudio("continue an interrupted session"); const c=$("pcode").value.trim().toUpperCase(); let R=null; try{ R=JSON.parse(localStorage.getItem("study_"+c)||localStorage.getItem("study_"+c+"_TEST")); }catch(e){} if(!R||!R.events) return;
   const st=stageOf(R); const needClips=["consent","sign","briefing","takeoff","approaches"].includes(st); const miss=[];   // the flight is still ahead: the clips and calibration must be back before continuing
-  if(needClips){ if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(st!=="approaches"&&!S.files[TAKEOFF]&&!R.testMode) miss.push("the takeoff clip"); if(S.noseOffset===null) miss.push("nose calibration"); }
+  if(needClips){ if(CLIPS.some(k=>!S.files[k])) miss.push("all 12 approach clips"); if(nameOnly().length) miss.push("the finished version of "+nameOnly().join(", ")); if(st!=="approaches"&&!S.files[TAKEOFF]&&!R.testMode) miss.push("the takeoff clip"); if(S.noseOffset===null) miss.push("nose calibration"); }
   if(!audOK) miss.push("audio files");
   if(miss.length){ $("continueDet").textContent="Cannot continue yet. Waiting for: "+miss.join(", "); return; }
   restoreStored(R); const p=progressOf(R); S.sightingSeq=0; S.interruptedPhase=null; S.restartPending=null; const lastEv=R.events[R.events.length-1];
@@ -1647,7 +1652,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ SND, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
+if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();

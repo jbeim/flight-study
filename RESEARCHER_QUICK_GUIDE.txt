@@ -1,5 +1,31 @@
-N41533 DETECTION STUDY APP, VERSION 2.7.0: RESEARCHER QUICK GUIDE
-(11 September 2026)
+N41533 DETECTION STUDY APP, VERSION 2.7.1: RESEARCHER QUICK GUIDE
+(13 September 2026)
+
+WHAT CHANGED IN 2.7.1 (the app now catches a clip that is the wrong version)
+- WHY. On 13 September the headset was found holding the pre-composite versions
+  of seven approach clips: the versions with no drone in them. The file names,
+  the file count and everything on screen looked right. Only the file size was
+  different. Version 2.7.0 would have accepted them by name and shown a green
+  ORDER READY. That cannot happen now.
+- The app recognises each clip by its exact file size. If it meets a file whose
+  size it does not know but whose name matches a study clip, it still loads it
+  so you can see what is there, but it now marks it clearly:
+    * the clip list shows WRONG instead of OK on that row, and says
+      "matched by file name only, not by its size";
+    * the box under the clip button shows BAD on that line, with the size it
+      expected and the size it found;
+    * the order line reads WRONG CLIP VERSION and names the clip;
+    * the Ready button stays locked and the line under it says which clip is
+      wrong;
+    * the saved run-order file marks that clip;
+    * the log records it (clip_wrong_version).
+  A session cannot be started or resumed until every clip is the finished one.
+- WHAT TO DO IF YOU SEE IT. Copy that clip again from its Pass-Card folder on D:
+  to the headset's Movies folder, choose "Replace the file in the destination",
+  then load the clips again in the headset. The expected sizes for all thirteen
+  files are in Project Docs\COPY_TO_HEADSET_AND_BACKUP.txt.
+- The order line now reads "each matched by its exact size" only when that is
+  actually true of every clip in the run.
 
 WHAT CHANGED IN 2.7.0 (engine sound, and a simpler setup screen)
 - ENGINE SOUND FIXED. In the first headset run the approaches were silent. The
@@ -268,7 +294,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.7.0 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.7.1 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the
