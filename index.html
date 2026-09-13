@@ -128,10 +128,8 @@
   <button class="bigbtn" id="homeConfig">Headset: set up and run a session</button>
   <button class="bigbtn quiet" id="homeStation">Computer: participant form and wrap-up</button>
   <button class="bigbtn quiet" id="homeConsent">Read the Consent Form</button>
-  <details class="rgate"><summary class="note">Researcher</summary>
-    <button class="bigbtn quiet" id="homeReset">Reset this headset</button>
-    <p class="note">Needs the researcher code. Use it to erase a stored session, clear unfinished part-sessions that keep appearing on this screen, or return the headset to a blank state before a fresh test.</p>
-  </details>
+  <button class="bigbtn quiet" id="homeReset">Researcher: reset this headset</button>
+  <p class="note">Needs the researcher code, and shows nothing until it is entered. Use it to save a backup, erase a stored session, clear unfinished part-sessions that keep appearing on this screen, or return the headset to a blank state before a fresh test.</p>
   <p class="note" id="verHome"></p>
 </section>
 
@@ -675,7 +673,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.7.3 (2026-09-13, wrong clip versions caught and blocked; researcher-only Reset this headset; and a full backup of every session, log and setting that can be saved before anything is erased)";
+const VERSION = "study-app 2.7.4 (2026-09-13, wrong clip versions caught and blocked; Reset this headset now a plain button on the home screen, still code-locked, with a full backup of every session, log and setting that can be saved before anything is erased)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
