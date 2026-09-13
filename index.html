@@ -128,7 +128,44 @@
   <button class="bigbtn" id="homeConfig">Headset: set up and run a session</button>
   <button class="bigbtn quiet" id="homeStation">Computer: participant form and wrap-up</button>
   <button class="bigbtn quiet" id="homeConsent">Read the Consent Form</button>
+  <details class="rgate"><summary class="note">Researcher</summary>
+    <button class="bigbtn quiet" id="homeReset">Reset this headset</button>
+    <p class="note">Needs the researcher code. Use it to erase a stored session, clear unfinished part-sessions that keep appearing on this screen, or return the headset to a blank state before a fresh test.</p>
+  </details>
   <p class="note" id="verHome"></p>
+</section>
+
+<!-- ============ RESET ============ -->
+<section id="s-reset" class="screen">
+  <p class="eyebrow">Researcher only</p>
+  <h1>Reset this headset</h1>
+  <p class="note">Everything on this screen is permanent and cannot be undone from here. Nothing is erased until you press a button a second time. A short record of what was erased is kept, and you can read it at the bottom.</p>
+  <label for="resetCode">Researcher code</label>
+  <input type="password" id="resetCode" placeholder="researcher code" autocomplete="off" spellcheck="false">
+  <button class="bigbtn" id="resetUnlock">Unlock this screen</button>
+  <div class="row" id="resetLockTagRow"><span class="tag wait" id="resetLockTag">LOCKED</span><span class="det" id="resetLockDet">enter the researcher code to see what this headset is holding</span></div>
+
+  <div id="resetBody" style="display:none">
+    <h2>What this headset is holding</h2>
+    <p class="note">A line marked CARE is a session whose report files were never saved from this headset. If you erase it, that participant's data is gone. Save the files first from the results screen, or lock the session, and it will read OK instead.</p>
+    <div id="resetList"></div>
+
+    <h2>Clear the leftovers</h2>
+    <p class="note">Erases part-sessions that were set aside, finished sessions whose reports were already saved, test sessions, and the locked screen. It keeps your settings, the nose calibration and the remembered clips folder, so the headset is still ready to run. Sessions marked CARE are left alone.</p>
+    <button class="bigbtn" id="resetTidy">Clear the leftovers (keeps settings, calibration and the clips folder)</button>
+
+    <h2>Full reset</h2>
+    <p class="note">Returns this headset to a blank state. It erases every stored session, the part-session leftovers, the master ledger, the computer forms, the locked screen, the nose calibration, the remembered clips folder, and the settings (report e-mail, sending key, researcher name, venue, headset name, seat, approach length). Afterwards, reload the page and set up from scratch.</p>
+    <button class="bigbtn" id="resetAll" style="background:var(--bad);color:#2a0f0d">Full reset: erase everything and start with a blank headset</button>
+
+    <details><summary class="note">Record of what has been erased</summary>
+      <pre class="picked" id="resetErasures" style="display:block"></pre>
+      <button class="bigbtn quiet" id="resetClearLog" style="display:none">Erase the record of what was erased</button>
+      <p class="note">This record survives a full reset on purpose, so you can always say what was removed and when. Erase it only if you want the headset to hold nothing at all.</p>
+    </details>
+  </div>
+
+  <button class="bigbtn quiet" id="resetBack">Back</button>
 </section>
 
 <!-- ============ CONSENT ============ -->
@@ -632,7 +669,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.7.1 (2026-09-13, wrong clip versions now caught: a clip recognised only by its file name is named on screen and blocks the run; the setup screen lists how every clip was matched)";
+const VERSION = "study-app 2.7.2 (2026-09-13, wrong clip versions caught and blocked; plus a researcher-only Reset this headset screen: erase one session, clear unfinished leftovers, or reset to a blank headset, with a permanent record of what was erased)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -1104,6 +1141,32 @@ $("storedBtn").onclick=()=>{ const c=$("pcode").value.trim().toUpperCase(); let 
   if(S.phase!=="done"){ const p=progressOf(R); if(p.completed===p.total){ S.idx=-1; ev("session_end",{note:"added when the stored session was reopened: every approach had finished but the browser stopped before the closing screen"}); S.idx=R.order.length-1; S.phase="done"; } }
   renderResults(); if(S.phase!=="done") tag("lockTag","warn","INCOMPLETE","this stored session did not reach the end; files can be saved, locking is not allowed"); show("s-results"); window.scrollTo(0,0); };
 $("homeConfig").onclick=()=>{ show("s-setup"); loadSoundtracks(); };
+$("homeReset").onclick=()=>{ $("resetCode").value=""; $("resetBody").style.display="none"; tag("resetLockTag","wait","LOCKED","enter the researcher code to see what this headset is holding"); show("s-reset"); window.scrollTo(0,0); };
+$("resetBack").onclick=()=>{ $("resetBody").style.display="none"; show("s-home"); homeContinueUI(); window.scrollTo(0,0); };
+$("resetUnlock").onclick=()=>{ if(!codeOK($("resetCode").value)){ tag("resetLockTag","bad","WRONG CODE","the reset screen stays locked"); return; }
+  tag("resetLockTag","ok","UNLOCKED","everything below is permanent. Nothing is erased until you press a button twice.");
+  $("resetBody").style.display="block"; resetRender(); };
+const RESET_TIDY_TEXT="Clear the leftovers (keeps settings, calibration and the clips folder)";
+$("resetTidy").onclick=()=>resetArm($("resetTidy"),"Press again to clear the leftovers",RESET_TIDY_TEXT,()=>{
+  let n=0; for(const k of archiveKeys()){ eraseSessionKey(k,"archived part-session cleared"); n++; }
+  for(const k of sessionKeys()){ const R=lsGet(k); if(!R) continue; if(!sessionSafety(R).safe) continue; eraseSessionKey(k,"leftover cleared"); n++; }
+  try{ localStorage.removeItem("study_locked"); localStorage.removeItem("study_last_report"); }catch(e){}
+  log("leftovers cleared: "+n+" stored item(s)"); tag("resetLockTag","ok","CLEARED",`${n} leftover item${n===1?"":"s"} erased; settings, calibration and the clips folder were kept. Sessions whose reports were never saved were left alone: erase those one at a time above.`);
+  resetRender(); homeContinueUI(); });
+const RESET_ALL_TEXT="Full reset: erase everything and start with a blank headset";
+$("resetAll").onclick=()=>resetArm($("resetAll"),"Press again to erase everything permanently",RESET_ALL_TEXT,async()=>{
+  let n=0; for(const k of sessionKeys()){ eraseSessionKey(k,"full reset"); n++; }
+  for(const k of archiveKeys()){ eraseSessionKey(k,"full reset"); n++; }
+  for(const k of ["study_ledger","study_locked","study_last_report","study_settings","study_site","study_seat","study_run","station_forms","noseOffsetDeg"]){ try{ if(localStorage.getItem(k)!==null){ localStorage.removeItem(k); n++; } }catch(e){} }
+  const forgot=await forgetClipFolder(); if(forgot) n++;
+  S.noseOffset=null; S.seat="seat"; S.run="short"; S.info={}; S.events=[]; S.code=""; S.order=[]; S.files={}; S.match={}; S.idx=-1; S.phase="setup"; S.orderSeed=null; REP=null;
+  try{ $("setSeat").value="seat"; $("setRun").value="short"; $("pcode").value=""; $("setTest").checked=false; tag("calTag","wait","NOT SET","the nose calibration was erased"); }catch(e){}
+  log("full reset: "+n+" stored item(s) erased");
+  tag("resetLockTag","ok","BLANK HEADSET",`${n} stored item${n===1?"":"s"} erased. Reload the page, then set up from scratch: choose the clips folder again, run the sound check, and calibrate the nose.`);
+  resetRender(); homeContinueUI(); });
+$("resetClearLog").onclick=()=>resetArm($("resetClearLog"),"Press again to erase the record of what was erased","Erase the record of what was erased",()=>{
+  try{ localStorage.removeItem("study_erasures"); }catch(e){} log("erasure record cleared"); resetRender();
+  tag("resetLockTag","warn","RECORD CLEARED","this headset no longer holds any record of what was erased"); });
 $("consentBack").addEventListener("click",homeContinueUI); $("setupBack").addEventListener("click",homeContinueUI); $("homeConsent").onclick=()=>{ show("s-consent"); window.scrollTo(0,0); };
 $("consentBack").onclick=()=>{ show("s-home"); window.scrollTo(0,0); }; $("setupBack").onclick=()=>show("s-home");
 
@@ -1485,6 +1548,54 @@ function xlsxBlob(rep){ if(!window.XLSX) return null; const wb=XLSX.utils.book_n
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rep.issues||[], {header:ISSUE_COLS}), "Issues");
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rep.events.map(e=>{ const o={}; EVENT_COLS.forEach(k=>o[k]=e[k]===undefined?"":e[k]); return o; }), {header:EVENT_COLS}), "Event log");
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}); }
+// ---------- reset this headset (researcher only) ----------
+const RESET_FIXED = ["study_ledger","study_locked","study_settings","study_site","study_last_report","study_seat","study_run","study_erasures"];
+function lsKeys(){ const out=[]; try{ for(let i=0;i<localStorage.length;i++) out.push(localStorage.key(i)); }catch(e){} return out; }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function isSessionKey(k){ if(!/^study_/.test(k)) return false; if(/^study_archive_/.test(k)) return false; if(RESET_FIXED.includes(k)) return false;
+  const R=lsGet(k); return !!(R&&R.events&&R.participant); }
+function sessionKeys(){ return lsKeys().filter(isSessionKey); }
+function archiveKeys(){ return lsKeys().filter(k=>/^study_archive_/.test(k)); }
+function ledgerHas(code){ try{ return !!ledgerLoad()[code]; }catch(e){ return false; } }
+function sessionSafety(R){ const locked=(R.events||[]).some(e=>e.type==="study_locked"); const inLedger=ledgerHas(R.participant); const test=/_TEST$/.test(R.participant||"");
+  return { locked, inLedger, test, safe: locked||inLedger||test }; }
+function erasureLog(){ const L=lsGet("study_erasures"); return Array.isArray(L)?L:[]; }
+function erasureAdd(rec){ const L=erasureLog(); L.push(rec); try{ localStorage.setItem("study_erasures",JSON.stringify(L)); }catch(e){} }
+function eraseSessionKey(key, why){ const R=lsGet(key);
+  if(R&&R.events){ const p=progressOf(R), sf=sessionSafety(R);
+    erasureAdd({code:R.participant, erased:localStamp(), approaches:`${p.completed} of ${p.total}`, stage:stageOf(R), reports_were_saved:!!(sf.locked||sf.inLedger), why:why||"erased on the reset screen"}); }
+  try{ localStorage.removeItem(key); }catch(e){} }
+async function forgetClipFolder(){ try{ const db=await dirDB(); await new Promise((res,rej)=>{ const t=db.transaction("h","readwrite"); t.objectStore("h").delete("dir"); t.oncomplete=res; t.onerror=()=>rej(t.error); }); return true; }catch(e){ return false; } }
+function resetRender(){ const el=$("resetList"); if(!el) return; el.innerHTML="";
+  const row=(tag_,cls,label,det,btn)=>{ const d=document.createElement("div"); d.className="row";
+    d.innerHTML=`<span class="tag ${cls}">${tag_}</span><span class="lbl">${label}</span><span class="det">${det}</span>`;
+    if(btn) d.appendChild(btn); el.appendChild(d); return d; };
+  const keys=sessionKeys();
+  if(!keys.length) row("--","wait","Sessions","none stored on this headset");
+  for(const k of keys){ const R=lsGet(k); const p=progressOf(R), sf=sessionSafety(R), st=stageOf(R);
+    const det=`${p.completed} of ${p.total} approaches, at ${STAGE_LABEL[st]||st}, last saved ${(R.events[R.events.length-1]||{}).local||"?"}`
+      +(sf.safe?(sf.test?"; test session":"; its reports were saved and locked"):"; ITS REPORTS WERE NEVER SAVED FROM THIS HEADSET");
+    const b=document.createElement("button"); b.className="bigbtn quiet"; b.style.margin="6px 0 0"; b.dataset.k=k; b.dataset.armed="0";
+    b.textContent=sf.safe?`Erase ${R.participant}`:`Erase ${R.participant} (its reports were never saved)`;
+    if(!sf.safe) b.style.background="var(--bad)", b.style.color="#2a0f0d";
+    b.onclick=()=>{ if(b.dataset.armed==="0"){ b.dataset.armed="1"; b.textContent=`Press again to erase ${R.participant} permanently`; setTimeout(()=>{ if(b.dataset.armed==="1"){ b.dataset.armed="0"; b.textContent=sf.safe?`Erase ${R.participant}`:`Erase ${R.participant} (its reports were never saved)`; } },6000); return; }
+      eraseSessionKey(k,"single session erased by the researcher"); log("erased stored session "+k); resetRender(); homeContinueUI(); };
+    row(sf.safe?"OK":"CARE", sf.safe?"ok":"bad", R.participant, det, b); }
+  const ar=archiveKeys(); row(ar.length?"HELD":"--", ar.length?"warn":"wait", "Unfinished leftovers", ar.length?`${ar.length} archived part-session${ar.length===1?"":"s"} set aside when Begin was pressed again for the same code`:"none");
+  const L=ledgerLoad(); const ln=Object.keys(L).length; row(ln?"HELD":"--", ln?"warn":"wait", "Master ledger", ln?`${ln} locked participant${ln===1?"":"s"} on this headset`:"empty");
+  const sf2=stationForms(); const fn=Object.keys(sf2).length; row(fn?"HELD":"--", fn?"warn":"wait", "Computer forms", fn?`${fn} participant form${fn===1?"":"s"}`:"none");
+  row(localStorage.getItem("study_locked")?"ON":"--", localStorage.getItem("study_locked")?"warn":"wait", "Locked screen", localStorage.getItem("study_locked")?"this headset is holding the locked screen from a finished session":"not locked");
+  row(S.noseOffset===null?"--":"SET", S.noseOffset===null?"wait":"ok", "Nose calibration", S.noseOffset===null?"not set":`${S.noseOffset} deg remembered`);
+  const fRow=row("--","wait","Clips folder","checking...");
+  dirLoad().then(h=>{ const d=fRow.querySelector(".det"), t=fRow.querySelector(".tag");
+    if(h){ t.className="tag warn"; t.textContent="HELD"; d.textContent=`this headset remembers the folder "${h.name||"(chosen folder)"}"`; }
+    else { t.className="tag wait"; t.textContent="--"; d.textContent="no remembered clips folder"; } }).catch(()=>{});
+  const setN=["study_settings","study_site","study_seat","study_run"].filter(k=>{ try{ return localStorage.getItem(k)!==null; }catch(e){ return false; } }).length;
+  row(setN?"HELD":"--", setN?"warn":"wait", "Settings", setN?`${setN} saved setting group${setN===1?"":"s"}: report e-mail, sending key, researcher name, venue, headset name, seat, approach length`:"nothing saved; the defaults are in use");
+  const E=erasureLog(); $("resetErasures").textContent = E.length? E.map(e=>`${e.erased}  ${e.code}  ${e.approaches}, at ${e.stage}  reports were saved: ${e.reports_were_saved?"yes":"NO"}  (${e.why})`).join("\n") : "Nothing has been erased on this headset.";
+  $("resetClearLog").style.display = E.length?"block":"none"; }
+function resetArm(btn, armedText, plainText, run){ if(btn.dataset.armed==="1"){ btn.dataset.armed="0"; btn.textContent=plainText; run(); return; }
+  btn.dataset.armed="1"; btn.textContent=armedText; setTimeout(()=>{ if(btn.dataset.armed==="1"){ btn.dataset.armed="0"; btn.textContent=plainText; } },8000); }
 function ledgerLoad(){ try{ return JSON.parse(localStorage.getItem("study_ledger")||"{}"); }catch(e){ return {}; } }
 function ledgerSave(rep){ const L=ledgerLoad(); L[rep.summary.participant]={locked:new Date().toISOString(), row:participantRow(rep), summary:rep.summary, cards:rep.cards.map(c=>{ const o={}; CARD_COLS.forEach(k=>o[k]=c[k]); return o; }), sightings:rep.sightings, issues:rep.issues||[]}; try{ localStorage.setItem("study_ledger",JSON.stringify(L)); }catch(e){ log("ledger save failed "+e.message); } return L; }
 function masterFiles(){ const L=ledgerLoad(); const codes=Object.keys(L).filter(c=>!(L[c].summary&&L[c].summary.test_mode)).sort(); // test runs are kept in the ledger but left out of the master log
@@ -1652,7 +1763,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
+if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();

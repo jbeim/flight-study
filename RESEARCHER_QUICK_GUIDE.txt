@@ -1,5 +1,42 @@
-N41533 DETECTION STUDY APP, VERSION 2.7.1: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.7.2: RESEARCHER QUICK GUIDE
 (13 September 2026)
+
+WHAT CHANGED IN 2.7.2 (a way to reset the headset)
+- WHERE. Home screen -> Researcher -> "Reset this headset". It asks for the
+  researcher code before it shows or does anything, so a participant poking
+  around the home screen sees nothing.
+- WHAT IT SHOWS. Once unlocked it lists everything this headset is holding:
+  each stored session with how far it got and when it was last saved, the
+  part-sessions that were set aside, the master ledger, the computer forms, the
+  locked screen, the nose calibration, the remembered clips folder, and your
+  settings.
+- THE SAFETY LINE. A session is marked OK when its report files were already
+  saved and locked, or when it is a test session. It is marked CARE when its
+  reports were NEVER saved from this headset, which means this headset holds
+  the only copy of that participant's data. Read that line before you erase
+  anything.
+- THREE WAYS TO CLEAR, smallest first:
+  1. Erase one session. Each line has its own button. Use this for a single
+     bad run.
+  2. "Clear the leftovers". Erases the part-sessions that were set aside, the
+     finished sessions whose reports were already saved, the test sessions, and
+     the locked screen. It KEEPS your settings, the nose calibration and the
+     remembered clips folder, so the headset is still ready to run. It will not
+     touch a session marked CARE. This is the one to use when the home screen
+     keeps offering an old unfinished session you no longer want.
+  3. "Full reset". Returns the headset to blank: every session, the leftovers,
+     the ledger, the computer forms, the locked screen, the calibration, the
+     clips folder and the settings. Use it only to start a test from scratch.
+     Afterwards, reload the page, pick the clips folder again, run the sound
+     check and calibrate the nose.
+- NOTHING HAPPENS ON ONE PRESS. Every button on this screen has to be pressed
+  twice. The first press changes the button to read "Press again to ...", and
+  it goes back to normal on its own after a few seconds if you walk away.
+- A RECORD IS KEPT. Each erasure is written to a short record: the code, the
+  date and time, how far the session got, and whether its reports had been
+  saved. The record survives a full reset on purpose, so you can always say
+  what was removed and when. It is at the bottom of the reset screen, and it
+  has its own separate button if you ever need to clear it too.
 
 WHAT CHANGED IN 2.7.1 (the app now catches a clip that is the wrong version)
 - WHY. On 13 September the headset was found holding the pre-composite versions
@@ -294,7 +331,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.7.1 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.7.2 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the

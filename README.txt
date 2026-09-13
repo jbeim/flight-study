@@ -1,7 +1,7 @@
 APP SITE FOLDER: what to upload to GitHub (repository jbeim/flight-study)
 =========================================================================
 Upload EVERYTHING in this folder, keeping the folder structure:
-  index.html                  the study app, version 2.7.1 (2.3 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
+  index.html                  the study app, version 2.7.2 (2.3 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
   data/telemetry.js           aircraft track and drone geometry for all 12 cards (the app scores presses with it)
   media/answers_reveal.mp4    "where the drones were" video (GitHub holds the 9.6 MB web copy from Media\answers_reveal_web_9.6MB_for_GitHub)
   media/fieldwork_making_of.mp4   optional two-minute behind-the-scenes film offered after that video (9.5 MB web copy, 720p; the 1080p master, 110 MB, is kept outside this folder)
@@ -14,8 +14,9 @@ Upload EVERYTHING in this folder, keeping the folder structure:
   audio/clips/TC01_audio.mp3 ... TC12_audio.mp3   the finished clip soundtracks (rebuilt 6 Sep 2026)
   audio/clips/TAKEOFF_audio.mp3   the takeoff soundtrack (made 11 Sep 2026; see Pass-Card Folders\00_Takeoff\00_READ_ME_Takeoff_Clip.txt)
 The video clips (12 approaches and the takeoff) are NOT uploaded; they stay on the headset.
-State of the site on 13 Sep 2026: app 2.7.1 uploaded (it refuses to run a clip that is not
-the finished version; see Project Docs\COPY_TO_HEADSET_AND_BACKUP.txt).
+State of the site on 13 Sep 2026: app 2.7.2 uploaded (it refuses to run a clip that is not
+the finished version, and adds a researcher-only "Reset this headset" screen; see
+Project Docs\COPY_TO_HEADSET_AND_BACKUP.txt and RESEARCHER_QUICK_GUIDE.txt).
 State of the site on 11 Sep 2026: every file above uploaded by Claude and checked against this folder (git blob hashes).
 How: github.com/jbeim/flight-study -> Add file -> Upload files -> drag the
 files in -> Commit changes. Wait about two minutes for the site to rebuild.
