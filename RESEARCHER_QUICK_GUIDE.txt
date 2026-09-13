@@ -1,5 +1,39 @@
-N41533 DETECTION STUDY APP, VERSION 2.7.2: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.7.3: RESEARCHER QUICK GUIDE
 (13 September 2026)
+
+WHAT CHANGED IN 2.7.3 (a backup you can take before you erase anything)
+- WHY. A full reset used to erase the master ledger along with everything else.
+  Nobody's own report files were at risk, because those are already saved in the
+  headset's Download folder and nothing on the reset screen can reach them. But
+  the running master study log on that headset would have started again from
+  empty. This closes that.
+- NEW BUTTON on the reset screen: "Save a backup of everything on this headset".
+  It writes ONE zip into the same Download folder as your report zips, named
+  HEADSET_BACKUP_ and the date and time. It copies; it erases nothing.
+- WHAT IS IN THE BACKUP:
+    00_sessions_summary.csv   one line per stored session: the code, how far it
+                              got, approaches finished, when it was last saved,
+                              how many events were recorded, and whether its
+                              reports had already been saved and locked.
+    sessions\                 for each session, the full event log as a
+                              spreadsheet (_events.csv) plus the untouched
+                              original (_session.json). The spreadsheet carries
+                              every field that appears anywhere in that log, so
+                              nothing is quietly dropped.
+    set_aside_part_sessions\  the same, for part-sessions the app set aside.
+    master_log\               the four STUDY_master files and the ledger.
+    computer_forms\           the participant forms from the computer station.
+    settings.json             report e-mail, researcher, venue, headset name,
+                              seat, approach length, nose calibration. The
+                              e-mail sending key is deliberately NOT saved.
+    erasures.csv              what has been erased from this headset, and when.
+    README_READ_ME_FIRST.txt  the above, in plain English, inside the zip.
+- THE FULL RESET IS NOW LOCKED until either a backup has been saved, or you tick
+  "I already have the files I need". The line above the button tells you how many
+  items the headset is holding and when the last backup was taken. If the headset
+  is already empty, nothing is required.
+- "Clear the leftovers" is not gated. It never touches the master ledger, and it
+  never touches a session whose reports were not saved.
 
 WHAT CHANGED IN 2.7.2 (a way to reset the headset)
 - WHERE. Home screen -> Researcher -> "Reset this headset". It asks for the
@@ -331,7 +365,7 @@ offset, order seed) is unchanged from 2.4.1.
 THE TAKEOFF CLIP
 The 13th video file is Pass-Card Folders\00_Takeoff\
 20260804_TAKEOFF_COCKPIT360_1137Z.mp4 (1.24 GB). The file still holds the
-whole minute from lining up to the climb; app 2.7.2 plays 20.0 s to 45.0 s
+whole minute from lining up to the climb; app 2.7.3 plays 20.0 s to 45.0 s
 (25 seconds, including the bird at 22.8 to 23.3 s), then asks the question.
 The start and stop points are two numbers in the app (TAKEOFF_FROM_S,
 TAKEOFF_TO_S). How the

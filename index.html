@@ -154,9 +154,15 @@
     <p class="note">Erases part-sessions that were set aside, finished sessions whose reports were already saved, test sessions, and the locked screen. It keeps your settings, the nose calibration and the remembered clips folder, so the headset is still ready to run. Sessions marked CARE are left alone.</p>
     <button class="bigbtn" id="resetTidy">Clear the leftovers (keeps settings, calibration and the clips folder)</button>
 
+    <h2>Save a backup first</h2>
+    <p class="note">Saves one zip holding everything this headset is storing: every session's full event log as a spreadsheet and as its untouched original, a one-line summary of each session, the master log files and the ledger behind them, the computer forms, your settings, and the record of what has already been erased. It lands in the headset's Download folder next to your report zips. It does not touch anything: it only copies.</p>
+    <button class="bigbtn" id="resetBackup">Save a backup of everything on this headset</button>
+
     <h2>Full reset</h2>
     <p class="note">Returns this headset to a blank state. It erases every stored session, the part-session leftovers, the master ledger, the computer forms, the locked screen, the nose calibration, the remembered clips folder, and the settings (report e-mail, sending key, researcher name, venue, headset name, seat, approach length). Afterwards, reload the page and set up from scratch.</p>
-    <button class="bigbtn" id="resetAll" style="background:var(--bad);color:#2a0f0d">Full reset: erase everything and start with a blank headset</button>
+    <p class="note" id="resetAllGateDet"></p>
+    <button class="bigbtn" id="resetAll" style="background:var(--bad);color:#2a0f0d" disabled>Full reset: erase everything and start with a blank headset</button>
+    <label class="note" style="display:block;margin-top:8px"><input type="checkbox" id="resetNoBackup"> I already have the files I need. Unlock the full reset without a backup.</label>
 
     <details><summary class="note">Record of what has been erased</summary>
       <pre class="picked" id="resetErasures" style="display:block"></pre>
@@ -669,7 +675,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.7.2 (2026-09-13, wrong clip versions caught and blocked; plus a researcher-only Reset this headset screen: erase one session, clear unfinished leftovers, or reset to a blank headset, with a permanent record of what was erased)";
+const VERSION = "study-app 2.7.3 (2026-09-13, wrong clip versions caught and blocked; researcher-only Reset this headset; and a full backup of every session, log and setting that can be saved before anything is erased)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -1153,6 +1159,11 @@ $("resetTidy").onclick=()=>resetArm($("resetTidy"),"Press again to clear the lef
   try{ localStorage.removeItem("study_locked"); localStorage.removeItem("study_last_report"); }catch(e){}
   log("leftovers cleared: "+n+" stored item(s)"); tag("resetLockTag","ok","CLEARED",`${n} leftover item${n===1?"":"s"} erased; settings, calibration and the clips folder were kept. Sessions whose reports were never saved were left alone: erase those one at a time above.`);
   resetRender(); homeContinueUI(); });
+$("resetBackup").onclick=async()=>{ $("resetBackup").disabled=true; tag("resetLockTag","wait","SAVING","building the backup...");
+  try{ const r=await backupEverything(); tag("resetLockTag","ok","BACKUP SAVED",`${r.name} (${r.files} files) ${r.how}. On the headset it is in Internal shared storage\\Download; copy it to the computer over the USB cable. The full reset is now unlocked.`); log("headset backup saved: "+r.name); }
+  catch(e){ tag("resetLockTag","bad","BACKUP FAILED",e.message+" - nothing was erased. Do not run the full reset until a backup has saved."); }
+  $("resetBackup").disabled=false; resetRender(); };
+$("resetNoBackup").onchange=resetAllGate;
 const RESET_ALL_TEXT="Full reset: erase everything and start with a blank headset";
 $("resetAll").onclick=()=>resetArm($("resetAll"),"Press again to erase everything permanently",RESET_ALL_TEXT,async()=>{
   let n=0; for(const k of sessionKeys()){ eraseSessionKey(k,"full reset"); n++; }
@@ -1161,7 +1172,7 @@ $("resetAll").onclick=()=>resetArm($("resetAll"),"Press again to erase everythin
   const forgot=await forgetClipFolder(); if(forgot) n++;
   S.noseOffset=null; S.seat="seat"; S.run="short"; S.info={}; S.events=[]; S.code=""; S.order=[]; S.files={}; S.match={}; S.idx=-1; S.phase="setup"; S.orderSeed=null; REP=null;
   try{ $("setSeat").value="seat"; $("setRun").value="short"; $("pcode").value=""; $("setTest").checked=false; tag("calTag","wait","NOT SET","the nose calibration was erased"); }catch(e){}
-  log("full reset: "+n+" stored item(s) erased");
+  backupTakenAt=null; try{ $("resetNoBackup").checked=false; }catch(e){} log("full reset: "+n+" stored item(s) erased");
   tag("resetLockTag","ok","BLANK HEADSET",`${n} stored item${n===1?"":"s"} erased. Reload the page, then set up from scratch: choose the clips folder again, run the sound check, and calibrate the nose.`);
   resetRender(); homeContinueUI(); });
 $("resetClearLog").onclick=()=>resetArm($("resetClearLog"),"Press again to erase the record of what was erased","Erase the record of what was erased",()=>{
@@ -1566,6 +1577,85 @@ function eraseSessionKey(key, why){ const R=lsGet(key);
     erasureAdd({code:R.participant, erased:localStamp(), approaches:`${p.completed} of ${p.total}`, stage:stageOf(R), reports_were_saved:!!(sf.locked||sf.inLedger), why:why||"erased on the reset screen"}); }
   try{ localStorage.removeItem(key); }catch(e){} }
 async function forgetClipFolder(){ try{ const db=await dirDB(); await new Promise((res,rej)=>{ const t=db.transaction("h","readwrite"); t.objectStore("h").delete("dir"); t.oncomplete=res; t.onerror=()=>rej(t.error); }); return true; }catch(e){ return false; } }
+function allKeys(rows){ const seen=new Set(); for(const r of rows) for(const k in r) seen.add(k);
+  const first=EVENT_COLS.filter(k=>seen.has(k)); const rest=[...seen].filter(k=>!first.includes(k)).sort(); return first.concat(rest); }
+function sessionSummaryRow(R){ const p=progressOf(R), sf=sessionSafety(R); const E=R.events||[]; const last=E[E.length-1]||{};
+  return { participant:R.participant||"", stage:stageOf(R), approaches_completed:p.completed, approaches_total:p.total,
+    started:R.started||"", last_saved_local:last.local||"", events_recorded:E.length,
+    reports_saved_and_locked:(sf.locked||sf.inLedger)?"yes":"no", test_session:sf.test?"yes":"no",
+    order_as_presented:(R.order||[]).join(" "), order_seed:(R.orderSeed!=null?R.orderSeed:""),
+    nose_offset_deg:(R.noseOffsetDeg!=null?R.noseOffsetDeg:""), seat_offset:R.seatOffset||"", software:R.version||"" }; }
+let backupTakenAt=null;
+function atRiskCount(){ let n=sessionKeys().length+archiveKeys().length;
+  try{ n+=Object.keys(ledgerLoad()).length+Object.keys(stationForms()).length; }catch(e){}
+  return n; }
+async function backupEverything(){ const files={}; const when=localStamp(); const keys=sessionKeys(), arcs=archiveKeys();
+  const rows=[], arows=[];
+  for(const k of keys){ const R=lsGet(k); if(!R) continue; rows.push(sessionSummaryRow(R));
+    const E=R.events||[]; files[`sessions/${R.participant}_events.csv`]=csvOf(E,allKeys(E));
+    files[`sessions/${R.participant}_session.json`]=JSON.stringify(R,null,1); }
+  for(const k of arcs){ const R=lsGet(k); if(!R) continue; const r=sessionSummaryRow(R); r.participant=r.participant+"  (set-aside part-session)"; arows.push(r);
+    const E=R.events||[]; files[`set_aside_part_sessions/${k.replace(/^study_archive_/,"")}_events.csv`]=csvOf(E,allKeys(E));
+    files[`set_aside_part_sessions/${k.replace(/^study_archive_/,"")}.json`]=JSON.stringify(R,null,1); }
+  const all=rows.concat(arows);
+  files["00_sessions_summary.csv"]=csvOf(all.length?all:[{participant:"(none stored)"}], all.length?Object.keys(all[0]):["participant"]);
+  let L={}; try{ L=ledgerLoad(); }catch(e){}
+  const mf=masterFiles(); for(const k in mf) files["master_log/"+k]=mf[k];
+  files["master_log/ledger.json"]=JSON.stringify(L,null,1);
+  let SF={}; try{ SF=stationForms(); }catch(e){}
+  const fr=Object.keys(SF).map(c=>SF[c]);
+  files["computer_forms/computer_forms.csv"]=csvOf(fr.length?fr:[{code:"(none)"}], fr.length?allKeys(fr):["code"]);
+  files["computer_forms/computer_forms.json"]=JSON.stringify(SF,null,1);
+  let site={}; try{ site=JSON.parse(localStorage.getItem("study_site")||"{}"); }catch(e){}
+  files["settings.json"]=JSON.stringify({ saved:when, report_email:SET.email||"", email_sending_key:"NOT INCLUDED IN THIS BACKUP ON PURPOSE: type it again in Settings if you ever restore",
+    researcher:site.researcher||"", venue:site.venue||"", headset:site.headset||"",
+    seat_offset:(()=>{try{return localStorage.getItem("study_seat")||"";}catch(e){return "";}})(),
+    approach_length:(()=>{try{return localStorage.getItem("study_run")||"";}catch(e){return "";}})(),
+    nose_offset_deg:(()=>{try{return localStorage.getItem("noseOffsetDeg")||"";}catch(e){return "";}})() },null,1);
+  const E2=erasureLog(); files["erasures.csv"]=csvOf(E2.length?E2:[{code:"(nothing erased)"}], E2.length?allKeys(E2):["code"]);
+  files["README_READ_ME_FIRST.txt"]=
+`WHAT THIS BACKUP IS\r\n===================\r\nSaved ${when} by ${VERSION}.\r\n\r\n`+
+`It holds everything the headset's browser was storing at that moment. It was made from the\r\n`+
+`"Reset this headset" screen, so that nothing is lost when the headset is cleared.\r\n\r\n`+
+`WHAT IS IN EACH FOLDER\r\n`+
+`  00_sessions_summary.csv   one line per stored session: the code, how far it got, how many\r\n`+
+`                            approaches finished, when it was last saved, how many events were\r\n`+
+`                            recorded, and whether its report files had already been saved and\r\n`+
+`                            locked. Read this one first.\r\n`+
+`  sessions\\                 for each stored session, the full event log as a spreadsheet\r\n`+
+`                            (_events.csv) and the untouched original (_session.json). The CSV\r\n`+
+`                            carries every field that appears anywhere in that session's log, so\r\n`+
+`                            nothing is dropped.\r\n`+
+`  set_aside_part_sessions\\  the same, for part-sessions the app set aside when Begin was pressed\r\n`+
+`                            again for a code that already had one.\r\n`+
+`  master_log\\               the four STUDY_master files and the ledger they are built from.\r\n`+
+`                            These cover every participant locked on this headset.\r\n`+
+`  computer_forms\\           participant forms entered at the computer station.\r\n`+
+`  settings.json             report e-mail, researcher, venue, headset name, seat, approach\r\n`+
+`                            length and nose calibration. The e-mail sending key is deliberately\r\n`+
+`                            NOT saved here; type it again in Settings if you ever need it.\r\n`+
+`  erasures.csv              the record of what has been erased from this headset and when.\r\n\r\n`+
+`WHAT IS NOT IN HERE\r\n`+
+`  The report zips you already saved. Those are files on the headset itself, in\r\n`+
+`  Internal shared storage\\Download, and nothing on the reset screen can touch them.\r\n`+
+`  The video clips. They live in Internal shared storage\\Movies and are never affected.\r\n\r\n`+
+`COUNTS AT THE TIME OF THIS BACKUP\r\n`+
+`  stored sessions: ${keys.length}\r\n  set-aside part-sessions: ${arcs.length}\r\n`+
+`  participants in the master ledger: ${Object.keys(L).length}\r\n  computer forms: ${Object.keys(SF).length}\r\n`+
+`  erasures on record: ${E2.length}\r\n`;
+  const name=`HEADSET_BACKUP_${stamp()}.zip`; const how=await saveFiles(files,name);
+  backupTakenAt=when; try{ localStorage.setItem("study_last_backup",JSON.stringify({at:new Date().toISOString(), local:when, sessions:keys.length, archives:arcs.length, ledger:Object.keys(L).length, forms:Object.keys(SF).length})); }catch(e){}
+  return {how, name, files:Object.keys(files).length}; }
+function lastBackup(){ const b=lsGet("study_last_backup"); return b&&b.local?b:null; }
+function resetAllGate(){ const b=$("resetAll"); if(!b) return; const risk=atRiskCount();
+  const ack=$("resetNoBackup")&&$("resetNoBackup").checked; const ok = risk===0 || !!backupTakenAt || ack;
+  b.disabled=!ok; const d=$("resetAllGateDet"); if(!d) return;
+  const lb=lastBackup();
+  d.textContent = risk===0 ? "There is nothing stored on this headset, so there is nothing to back up."
+    : backupTakenAt ? `A backup was saved at ${backupTakenAt}. The full reset is unlocked.`
+    : ack ? "You have said you do not need a backup. The full reset is unlocked."
+    : `This headset is holding ${risk} item${risk===1?"":"s"}. Save a backup first, or tick the box below, and the full reset will unlock.`
+      + (lb?` The last backup on record was ${lb.local}.`:" No backup has ever been saved from this headset."); }
 function resetRender(){ const el=$("resetList"); if(!el) return; el.innerHTML="";
   const row=(tag_,cls,label,det,btn)=>{ const d=document.createElement("div"); d.className="row";
     d.innerHTML=`<span class="tag ${cls}">${tag_}</span><span class="lbl">${label}</span><span class="det">${det}</span>`;
@@ -1593,7 +1683,7 @@ function resetRender(){ const el=$("resetList"); if(!el) return; el.innerHTML=""
   const setN=["study_settings","study_site","study_seat","study_run"].filter(k=>{ try{ return localStorage.getItem(k)!==null; }catch(e){ return false; } }).length;
   row(setN?"HELD":"--", setN?"warn":"wait", "Settings", setN?`${setN} saved setting group${setN===1?"":"s"}: report e-mail, sending key, researcher name, venue, headset name, seat, approach length`:"nothing saved; the defaults are in use");
   const E=erasureLog(); $("resetErasures").textContent = E.length? E.map(e=>`${e.erased}  ${e.code}  ${e.approaches}, at ${e.stage}  reports were saved: ${e.reports_were_saved?"yes":"NO"}  (${e.why})`).join("\n") : "Nothing has been erased on this headset.";
-  $("resetClearLog").style.display = E.length?"block":"none"; }
+  $("resetClearLog").style.display = E.length?"block":"none"; resetAllGate(); }
 function resetArm(btn, armedText, plainText, run){ if(btn.dataset.armed==="1"){ btn.dataset.armed="0"; btn.textContent=plainText; run(); return; }
   btn.dataset.armed="1"; btn.textContent=armedText; setTimeout(()=>{ if(btn.dataset.armed==="1"){ btn.dataset.armed="0"; btn.textContent=plainText; } },8000); }
 function ledgerLoad(){ try{ return JSON.parse(localStorage.getItem("study_ledger")||"{}"); }catch(e){ return {}; } }
@@ -1763,7 +1853,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
+if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();
