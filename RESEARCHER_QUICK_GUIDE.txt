@@ -1,5 +1,105 @@
-N41533 DETECTION STUDY APP, VERSION 2.7.3: RESEARCHER QUICK GUIDE
-(13 September 2026)
+N41533 DETECTION STUDY APP, VERSION 2.8.0: RESEARCHER QUICK GUIDE
+(13 September 2026, evening)
+
+WHAT CHANGED IN 2.8.0 (engine sound, the cockpit staying put, nose calibration,
+picture steadying)
+
+- ENGINE SOUND: WHAT WAS ACTUALLY WRONG. 2.7.0 said the sound was fixed, and it
+  was not. The sound check on the setup screen worked, and inside the flight the
+  soundtrack really was playing, but at volume zero. The soundtrack fades in over
+  0.4 s so there is no click when a run starts part-way into the file, and that
+  fade was driven by the page's animation clock. Inside VR the headset stops that
+  clock (only the VR frame loop runs), so the fade set the volume to zero and then
+  never raised it. The watchdog only checked that the sound was running, which it
+  was. Now the fade runs on plain timers, full volume is forced at 0.7 s whatever
+  happens, the soundtrack sync loop puts the volume back to full if anything ever
+  lowers it, and the watchdog treats a low volume as silence. Every clip_start,
+  clip_audio_start and playback_rate line in the log now records the volume, so
+  the next headset run will show in black and white whether the sound played.
+  The test suite also runs an approach with the animation clock deliberately
+  killed and demands full volume within a second (it failed on 2.7.4).
+
+- THE COCKPIT STAYS WHERE IT IS BETWEEN APPROACHES. Until now the cockpit was
+  turned to wherever the participant happened to be looking at the moment they
+  pulled the trigger for each approach. A glance to the left at the pull put the
+  nose on the left for the whole approach, and nothing could put it back. Now the
+  cockpit is turned to the participant's gaze once when they enter VR and once
+  more at their first trigger pull in that VR session, and then it is left alone.
+  The FLIGHT READY panel now says "Sit square, look straight ahead, then pull the
+  trigger for the first approach".
+
+- TWO WAYS TO FIX THE VIEW DURING THE FLIGHT (the participant does these; tell
+  them at the briefing):
+    HOLD EITHER GRIP for one and a half seconds: the nose is put straight ahead
+      of wherever they are looking. A panel says "keep holding the grip"; letting
+      go early cancels. Logged as view_recentred.
+    PUSH A THUMBSTICK LEFT OR RIGHT: the whole picture slides one degree per
+      step. A panel shows the amount. Logged as view_trim with the amount, and
+      the amount is written into every playback_rate line. Pointing is scored
+      through the current turn, so a trim never corrupts the azimuths.
+  Both are only live while a clip is running, between clips, and during the
+  takeoff; nothing happens on the readings or the thank-you screen.
+
+- NOSE CALIBRATION BY POINTING, WITH FINE-TUNING. Setup screen, section 4:
+    1. "Calibrate": you enter VR on a frame of TC01.
+    2. Lay the controller's laser on the propeller spinner and pull the trigger.
+       (The pointing direction is used, not the head direction: a laser can be
+       laid on the spinner exactly.)
+    3. The cockpit turns so the nose it now believes in sits straight ahead,
+       under the panel that says NOSE SET AT (so many) DEG. If the real spinner
+       is left or right of the panel, push the thumbstick left or right; each
+       step slides the picture half a degree. Hold the grip to point again.
+    4. Pull the trigger to keep it. The setup screen shows the value, how it was
+       pointed and how much you fine-tuned, and the session log carries the same.
+  If you take the headset off before the last pull, the previous calibration is
+  kept. Under the button there are now four nudge buttons (5 and 1 degree, left
+  and right) for a remembered calibration: use them after a session in which the
+  log's yaw trim shows the nose sat a little off straight ahead.
+
+- PICTURE STEADYING (Advanced settings, off by default). The clips were exported
+  with the camera's own stabilisation off, on purpose, so that the cockpit stays
+  fixed in the picture and the pointing frame stays the aircraft's own. The price
+  is that the airframe's vibration reaches the eye unfiltered: in the aircraft
+  your head shakes with the panel and your eyes steady the world; in VR your head
+  is still, so the outside world buzzes. Measured on the takeoff climb and on a
+  final-approach window of TC01, the buzz is small in angle, about 0.1 deg RMS
+  with peaks near 0.2 deg, mostly side to side at 10 to 15 frames per second,
+  which is exactly the kind of motion the eye picks up on the horizon and the
+  runway edges.
+  What 2.8.0 does about it: for each clip a track can be made offline (from a
+  small proxy of the clip) that holds, for every video frame, the tiny rotation
+  that cancels only that fast wobble; the aircraft's real motion is kept. The app
+  turns the video sphere by that amount as each frame is shown. The clip files
+  are not touched, their checksums do not change, and the pointing frame moves by
+  less than a fifth of a degree, far inside the pointing error. The panel wobbles
+  by that same small amount instead of the world, which is closer to what a pilot
+  actually sees. Checked end to end in the app's own rendering: on the takeoff
+  window the frame-to-frame wobble fell from 0.13 to 0.04 deg. Tracks live on the
+  site as data/motion/<clip>.json; the setup screen's status line says how many
+  are there. On 13 September only the TAKEOFF track exists. The twelve approach
+  tracks need small proxy copies of the clips, which the PC has to make
+  (Claude outputs\_steadying_2026-09-13\README.txt says how). Until a clip has a
+  track it plays exactly as recorded, and its clip_start line says so.
+  Every clip_start line records whether the picture was steadied.
+
+- VIDEO FRAMES ARE NOW UPLOADED TO THE SPHERE ONCE PER VIDEO FRAME (30 a second)
+  instead of once per screen refresh (72 to 90 a second), which is what the 3D
+  library does by default. Less work for the headset. xr_entered and every
+  playback_rate line record which mode is in use, and there is a fallback to the
+  old way if the video frame callback ever stops arriving.
+
+- FINE DETAIL SETTING (Advanced settings): "Smoothed" builds mipmaps for every
+  frame, which calms the shimmer on fine edges when the head moves, at the cost of
+  extra work per frame. Off by default. Try it once on the headset and read the
+  fps and dropped-frame numbers in the playback_rate lines before and after.
+
+- WHAT TO DO ON THE NEXT HEADSET TEST, IN ORDER: reload the page and confirm the
+  version line reads 2.8.0; load the clips; sound check; calibrate the nose by
+  pointing (section 4) and fine-tune until the spinner sits under the panel; run a
+  short test with the takeoff; listen for the engine; try the grip hold and the
+  thumbstick; then Reset this headset -> Save a backup, copy the HEADSET_BACKUP zip
+  from the Download folder to the computer, and give it to Claude: the log will
+  show the volume, the frame rate, dropped frames, the upload mode and the trims.
 
 WHAT CHANGED IN 2.7.3 (a backup you can take before you erase anything)
 - WHY. A full reset used to erase the master ledger along with everything else.
@@ -251,10 +351,12 @@ On the headset
    this headset can open and play every clip". Every line should read OK.
 6. Step 3, engine sound: wait for the soundtracks to load, then press "Play
    the engine sound now" and listen. It must say SOUND OK.
-7. Nose calibration (once per headset; remembered).
-7. The line under the Ready button must read "Everything is ready". Short
+7. Nose calibration (once per headset; remembered): Calibrate -> in VR lay the
+   laser on the propeller spinner, pull the trigger, fine-tune with the
+   thumbstick until the spinner sits under the panel, pull again.
+8. The line under the Ready button must read "Everything is ready". Short
    test run (two approaches) is the tick box just above it.
-8. Press "Ready: hand the headset to the participant". Put the headset on
+9. Press "Ready: hand the headset to the participant". Put the headset on
    the participant and hand them the controller.
 
 WHAT THE PARTICIPANT SEES
@@ -265,7 +367,8 @@ WHAT THE PARTICIPANT SEES
  4 Takeoff              25 s from the end of the roll (bird at about 3 s),
                         then the YES/NO question
  5 Instructions         your recordings 03 and 04, then "pull the trigger
-                        for the first approach"
+                        for the first approach". Grip held = nose straight
+                        ahead; thumbstick = slide the picture (both logged)
  6 Twelve approaches    about 2 minutes each; break after approach 6
  7 Thank you           headset off, interview; the screen stays up. After
                         the interview: Researcher -> code -> "Interview
