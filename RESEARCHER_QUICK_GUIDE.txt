@@ -1,5 +1,36 @@
-N41533 DETECTION STUDY APP, VERSION 2.8.2: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.8.3: RESEARCHER QUICK GUIDE
 (14 September 2026)
+
+WHAT CHANGED IN 2.8.3 (either trigger works everywhere; a sound boost)
+
+- THE RIGHT TRIGGER. Until now the app took "controller 0" and "controller 1"
+  from the headset and treated 0 as the left hand and 1 as the right. The
+  headset does not promise that order. When it came the other way round, a
+  right-hand pull was aimed with the LEFT controller's laser: the pull
+  registered, but it pointed somewhere else, so the YES/NO panels, the four
+  WHAT DID YOU SEE panels, the red mistake panel and the replay panel did not
+  answer it. Now every pull is aimed from the pose of the controller that was
+  actually pulled, whichever hand and whichever index, and the reticle follows
+  that hand. Every detection, lock_in and sighting_class line in the log records
+  hand: left, right or gaze (desktop). Both triggers do the same thing; there is
+  no "main" hand.
+
+- SOUND BOOST (Advanced settings, written to every log). The headset's own
+  volume is a Quest setting the app cannot touch, and a media player's own
+  volume stops at 1.0. The app now routes the engine soundtrack and every
+  recording through a gain and a limiter, so the whole session can be louder
+  than the files alone allow and you turn it DOWN with the headset's volume
+  buttons. Choices: Off (x1), x1.5 (+3.5 dB), x2 (+6 dB, the default), x3
+  (+9.5 dB, the loudest; the limiter works hard on the engine). The files are
+  not changed. The setup screen's row shows the boost and the state of the
+  audio graph ("running" is right); the sound check names the boost; every
+  clip_audio_start line and session_start carry it. If the audio graph ever
+  stops running inside VR, the watchdog restarts it and logs
+  audio_ctx_not_running.
+  HEADSET TEST FOR THE BOOST: set the headset volume to about half, run the
+  setup sound check, then start the flight. The engine should be clearly louder
+  than in 2.8.2 at the same headset volume, with no crackle. If you hear
+  crackle at x3, use x2.
 
 WHAT CHANGED IN 2.8.2 (the participant says what each sighting was)
 

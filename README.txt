@@ -1,7 +1,7 @@
 APP SITE FOLDER: what to upload to GitHub (repository jbeim/flight-study)
 =========================================================================
 Upload EVERYTHING in this folder, keeping the folder structure:
-  index.html                  the study app, version 2.8.2 (2.1 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
+  index.html                  the study app, version 2.8.3 (2.1 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
   data/telemetry.js           aircraft track and drone geometry for all 12 cards (the app scores presses with it)
   data/motion/<clip>.json     picture-steadying tracks, one per clip (2.8.0). TAKEOFF.json is the only one so far;
                               the twelve approach tracks need the proxies described in
@@ -19,6 +19,9 @@ Upload EVERYTHING in this folder, keeping the folder structure:
   audio/clips/TC01_audio.mp3 ... TC12_audio.mp3   the finished clip soundtracks (rebuilt 6 Sep 2026)
   audio/clips/TAKEOFF_audio.mp3   the takeoff soundtrack (made 11 Sep 2026; see Pass-Card Folders\00_Takeoff\00_READ_ME_Takeoff_Clip.txt)
 The video clips (12 approaches and the takeoff) are NOT uploaded; they stay on the headset.
+State of the site on 14 Sep 2026 (evening): app 2.8.3 uploaded (a trigger pull is aimed from the controller that was
+pulled, left or right, so the panels answer either hand; the hand is logged; a sound boost x2 by default, up to x3, through a
+limiter; see RESEARCHER_QUICK_GUIDE.txt, "WHAT CHANGED IN 2.8.3").
 State of the site on 14 Sep 2026 (later): app 2.8.2 uploaded (after each lock-in the participant points at DRONE,
 OTHER AIRCRAFT, BIRD or OTHER; presses outside a drone window reported as something other than a drone are scored
 as OTHER SIGHTING, not FALSE ALARM; see RESEARCHER_QUICK_GUIDE.txt, "WHAT CHANGED IN 2.8.2"). Narration 03 v4.6 uploaded.

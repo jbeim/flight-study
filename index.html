@@ -298,6 +298,9 @@
   <p class="note" style="margin:10px 0 2px">Picture steadying (written to every log). Cancels only the fast airframe wobble in the picture, frame by frame, from a track made from each clip; the clip files are not changed and the aircraft's real motion is kept.</p>
   <select id="setSteady" style="width:100%;box-sizing:border-box;font:600 1.05rem Barlow,sans-serif;padding:12px;border-radius:10px;border:1px solid var(--edge);background:#0e141b;color:var(--text)"><option value="off">Off: the picture plays exactly as recorded (default)</option><option value="on">On: the fast wobble is cancelled on every clip that has a track on the site</option></select>
   <div class="row"><span class="tag wait" id="steadyTag">OFF</span><span class="lbl">Steadying tracks</span><span class="det" id="steadyDet"></span></div>
+  <p class="note" style="margin:10px 0 2px">Sound boost (written to every log). Raises the engine soundtrack and every recording together through a limiter, so the headset can be set loud and turned DOWN with its volume buttons. The files are not changed.</p>
+  <select id="setBoost" style="width:100%;box-sizing:border-box;font:600 1.05rem Barlow,sans-serif;padding:12px;border-radius:10px;border:1px solid var(--edge);background:#0e141b;color:var(--text)"><option value="1">Off: files play at their own level</option><option value="1.5">x1.5 (+3.5 dB)</option><option value="2">x2 (+6 dB), default</option><option value="3">x3 (+9.5 dB), the loudest; the limiter works hard on the engine</option></select>
+  <div class="row"><span class="tag wait" id="boostTag">x2</span><span class="lbl">Sound boost</span><span class="det" id="boostDet"></span></div>
   <p class="note" style="margin:10px 0 2px">Fine detail of the video (written to every log)</p>
   <select id="setMip" style="width:100%;box-sizing:border-box;font:600 1.05rem Barlow,sans-serif;padding:12px;border-radius:10px;border:1px solid var(--edge);background:#0e141b;color:var(--text)"><option value="off">Sharp: every pixel sampled straight (default)</option><option value="on">Smoothed: mipmaps built for every frame, calms shimmer on fine edges, more work per frame</option></select>
   <p class="note" style="margin:10px 0 2px">Viewer seat position inside the 360 video (written to every log)</p>
@@ -685,7 +688,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.8.2 (2026-09-14, after each lock-in the participant says what it was (DRONE, OTHER AIRCRAFT, BIRD, OTHER) by pointing at a panel, and presses on things that are not drones are counted as other sightings instead of false alarms; every approach is the last 2 minutes of its clip; the takeoff starts 5 s earlier on the runway; the camera's mount tilt is levelled so the cockpit and the panels sit square (roll 9 deg, pitch 2.5 deg, measured from the takeoff clip, adjustable);  engine sound: the volume ramp no longer depends on the page animation clock, which the headset stops in VR, so the soundtrack no longer plays at zero volume; the cockpit stays where it was put between approaches, with grip-hold to recentre and thumbstick to trim; nose calibration by pointing, with fine-tuning; video frames uploaded once per frame instead of once per screen refresh)";
+const VERSION = "study-app 2.8.3 (2026-09-14, either hand's trigger works everywhere and the hand is logged; a sound boost with a limiter raises the whole headset soundtrack and narration; after each lock-in the participant says what it was (DRONE, OTHER AIRCRAFT, BIRD, OTHER) by pointing at a panel, and presses on things that are not drones are counted as other sightings instead of false alarms; every approach is the last 2 minutes of its clip; the takeoff starts 5 s earlier on the runway; the camera's mount tilt is levelled so the cockpit and the panels sit square (roll 9 deg, pitch 2.5 deg, measured from the takeoff clip, adjustable);  engine sound: the volume ramp no longer depends on the page animation clock, which the headset stops in VR, so the soundtrack no longer plays at zero volume; the cockpit stays where it was put between approaches, with grip-hold to recentre and thumbstick to trim; nose calibration by pointing, with fine-tuning; video frames uploaded once per frame instead of once per screen refresh)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -719,10 +722,10 @@ const OPTIONAL_NARR = {welcome_back:"14_welcome_back", restart:"16_restart_appro
 const optionalOK={};
 let optAudio=null;
 function stopOptional(){ if(optAudio){ try{ optAudio.pause(); }catch(e){} optAudio=null; } }
-function sayOptional(key){ const n=OPTIONAL_NARR[key]; if(!n||optionalOK[n]===false) return null; stopOptional(); const a=new Audio(AUDIO.narr(n)); optAudio=a; a.onerror=()=>{ optionalOK[n]=false; }; a.play().catch(()=>{}); return a; }
+function sayOptional(key){ const n=OPTIONAL_NARR[key]; if(!n||optionalOK[n]===false) return null; stopOptional(); const a=mkAudio(AUDIO.narr(n)); optAudio=a; a.onerror=()=>{ optionalOK[n]=false; }; a.play().catch(()=>{}); return a; }
 // plays an optional piece and waits for it to end (resolves at once when the file is missing or cannot play)
 function sayOptionalWait(key,onStart){ const n=OPTIONAL_NARR[key]; if(!n||optionalOK[n]===false) return Promise.resolve(false); stopOptional();
-  return new Promise(res=>{ const a=new Audio(AUDIO.narr(n)); optAudio=a; let done=false; const fin=v=>{ if(done) return; done=true; res(v); };
+  return new Promise(res=>{ const a=mkAudio(AUDIO.narr(n)); optAudio=a; let done=false; const fin=v=>{ if(done) return; done=true; res(v); };
     a.onended=()=>fin(true); a.onerror=()=>{ optionalOK[n]=false; fin(false); }; a.onpause=()=>{ if(!a.ended) fin(false); }; a.play().then(()=>{ if(onStart&&!done) onStart(); }).catch(()=>fin(false)); }); }
 const BREAK_AFTER = 6;
 // Actual UTC of clip time 0:00 on 2026-08-04 (requested cut start minus measured keyframe shift, QC log Sept 1 2026)
@@ -978,9 +981,27 @@ clipAudio.preservesPitch=false;
 let takeoffAudioOK = false;
 const SILENT_WAV="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
 let audioPrimed=false, audioPrimeTried=0;
+// ---- 2.8.3 sound boost: every player (soundtrack and narration) is routed through a gain and a limiter, so the headset can be louder than the
+// files alone allow and the researcher turns it DOWN with the headset buttons. A media element's own volume stops at 1.0; only Web Audio goes above it.
+// Setting study_boost: "1" (off), "1.5", "2" (default), "3". The graph is built on a button press (the browser will not start audio otherwise)
+// and every play() resumes the context. If the context ever stops running, the watchdog resumes it and the log says so.
+let boostGain=2; try{ const b=parseFloat(localStorage.getItem("study_boost")); if([1,1.5,2,3].includes(b)) boostGain=b; }catch(e){}
+let boostCtx=null, boostNode=null, boostLimiter=null; const boostAttached=new WeakSet(); let boostFailed="";
+function boostEnsure(){ if(boostGain<=1||boostFailed) return null; if(boostCtx) return boostCtx;
+  try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ boostFailed="no AudioContext"; return null; }
+    boostCtx=new AC(); boostNode=boostCtx.createGain(); boostNode.gain.value=boostGain;
+    boostLimiter=boostCtx.createDynamicsCompressor(); boostLimiter.threshold.value=-6; boostLimiter.knee.value=6; boostLimiter.ratio.value=12; boostLimiter.attack.value=0.003; boostLimiter.release.value=0.25;
+    boostNode.connect(boostLimiter); boostLimiter.connect(boostCtx.destination); log("sound boost x"+boostGain+" ready ("+boostCtx.state+")"); return boostCtx; }
+  catch(e){ boostFailed=e.message; log("sound boost unavailable: "+e.message); return null; } }
+function boostAttach(el){ const c=boostEnsure(); if(!c||!el||boostAttached.has(el)) return el;
+  try{ const src=c.createMediaElementSource(el); src.connect(boostNode); boostAttached.add(el); }catch(e){ log("sound boost could not take a player: "+e.message); }
+  return el; }
+function boostResume(){ if(boostCtx&&boostCtx.state!=="running"){ boostCtx.resume().catch(()=>{}); } }
+function boostState(){ return {gain:boostGain, ctx:boostCtx?boostCtx.state:(boostFailed?"failed: "+boostFailed:"not built"), attached_clip:!!(clipAudio&&boostAttached.has(clipAudio))}; }
+function mkAudio(src){ const a=new Audio(src); boostAttach(a); boostResume(); return a; }
 // The Quest browser will not start a NEW sound from inside the immersive view: there is no button press there.
 // So the one player is started (silently) by the last button press before the flight, which leaves it allowed to play.
-function primeAudio(why){ if(audioPrimed) return; audioPrimeTried++;
+function primeAudio(why){ boostAttach(clipAudio); boostResume(); if(audioPrimed) return; audioPrimeTried++;
   try{ clipAudio.muted=true; clipAudio.src=SILENT_WAV; const p=clipAudio.play();
     if(p&&p.then) p.then(()=>{ clipAudio.pause(); clipAudio.muted=false; audioPrimed=true; log("engine sound unlocked ("+(why||"")+")"); soundUI(); })
                    .catch(e=>{ clipAudio.muted=false; log("engine sound not unlocked yet: "+e.message); });
@@ -1001,6 +1022,7 @@ async function loadSoundtracks(){ if(sndBusy) return; sndBusy=true; soundUI();
   sndBusy=false; soundUI(); log("soundtracks held in the headset: "+sndCount()); }
 // warning inside the headset if a clip is playing without its sound
 function audioWatch(tc){ setTimeout(()=>{ if(S.phase!=="playing"&&S.phase!=="takeoff") return;
+  if(boostCtx&&boostCtx.state!=="running"){ ev("audio_ctx_not_running",{tc, state:boostCtx.state}); boostResume(); }
   const quiet=clipAudio.volume<0.999||clipAudio.muted;
   const silent=clipAudio.paused||clipAudio.currentTime<0.05||quiet;
   if(!silent) return;
@@ -1009,8 +1031,8 @@ function audioWatch(tc){ setTimeout(()=>{ if(S.phase!=="playing"&&S.phase!=="tak
   clipAudio.play().catch(()=>{});
   setTimeout(()=>{ if((S.phase==="playing"||S.phase==="takeoff")&&(clipAudio.paused||clipAudio.currentTime<0.05)){
     prompt(["NO ENGINE SOUND","Please tell the researcher"]); setTimeout(()=>{ if(S.phase==="playing"||S.phase==="takeoff") prompt(null); },5000); } },1200); },2500); }
-function playSound(src){ return new Promise(res=>{ const a=new Audio(src); a.onended=()=>res(true); a.onerror=()=>{ log("audio missing: "+src); res(false); }; a.play().catch(()=>{ log("audio blocked: "+src); res(false); }); }); }
-function sayAsync(src){ const a=new Audio(src); a.play().catch(()=>log("audio blocked: "+src)); return a; }
+function playSound(src){ return new Promise(res=>{ const a=mkAudio(src); a.onended=()=>res(true); a.onerror=()=>{ log("audio missing: "+src); res(false); }; a.play().catch(()=>{ log("audio blocked: "+src); res(false); }); }); }
+function sayAsync(src){ const a=mkAudio(src); a.play().catch(()=>log("audio blocked: "+src)); return a; }
 async function checkAudio(){
   if(location.protocol==="file:"){ tag("audTag","warn","LOCAL","opened from disk: audio files cannot be pre-checked here, they play directly from the folder"); return true; }
   const names=[...READY_NARR,"05_paused_point","06_locked_in","07_fault_noted","08_next_approach","09_break","10_complete",READING.consent,READING.briefing,READING.debrief];
@@ -1098,7 +1120,7 @@ async function testClips(){ const keys=[...CLIPS,TAKEOFF].filter(k=>S.files[k]);
   tag("decTag",all?"ok":"bad",all?"ALL PLAY":"PROBLEM",`${ok} of ${keys.length} clips opened and showed a picture${all?"":"; see the list below and tell Claude what it says"}`); $("testClips").disabled=false; }
 $("testClips").onclick=testClips;
 // sound check: plays a real approach soundtrack through the headset so the researcher can hear it before a session
-$("sndTest").onclick=async()=>{ primeAudio("sound check"); const k=CLIPS.find(c=>SND[c])||CLIPS[0];
+$("sndTest").onclick=async()=>{ primeAudio("sound check"); boostAttach(clipAudio); boostResume(); const k=CLIPS.find(c=>SND[c])||CLIPS[0];
   clipAudio.pause(); clipAudio.src=sndSrc(k); clipAudio.load(); clipAudio.volume=1;
   await new Promise(res=>{ if(isFinite(clipAudio.duration)&&clipAudio.duration>0) return res(); const done=()=>{ clipAudio.removeEventListener("loadedmetadata",done); res(); }; clipAudio.addEventListener("loadedmetadata",done); setTimeout(done,4000); });
   const dur=isFinite(clipAudio.duration)&&clipAudio.duration>0?clipAudio.duration:0;
@@ -1107,8 +1129,8 @@ $("sndTest").onclick=async()=>{ primeAudio("sound check"); const k=CLIPS.find(c=
     const from=clipAudio.currentTime;
     setTimeout(()=>{ const moved=clipAudio.currentTime>from+0.5; clipAudio.pause();
       tag("sndTag",moved?"ok":"bad",moved?"SOUND OK":"NO SOUND",
-        moved?`the ${k} soundtrack played in the headset; ${sndCount()} soundtracks are held in the headset`:"the sound did not run: check the headset volume and press again");
-      ev("sound_check",{clip:k, result:moved?"played":"did not run"}); audioPrimed=audioPrimed||moved; readyCheck(); },4000);
+        moved?`the ${k} soundtrack played in the headset; ${sndCount()} soundtracks are held in the headset; sound boost x${boostGain}${boostCtx?" ("+boostCtx.state+")":" (not built)"}`:"the sound did not run: check the headset volume and press again");
+      ev("sound_check",{clip:k, result:moved?"played":"did not run", boost:boostState()}); audioPrimed=audioPrimed||moved; readyCheck(); },4000);
   }catch(e){ tag("sndTag","bad","BLOCKED","the headset refused to play the sound: "+e.message); ev("sound_check",{clip:k, result:"blocked", message:e.message}); } };
 function renderOrderReport(){ const el=$("orderReport"); if(!el) return; const c=$("pcode").value.trim().toUpperCase();
   if(c.length<2){ el.textContent="Type the participant code to see the order."; return ""; }
@@ -1190,7 +1212,7 @@ const RESET_ALL_TEXT="Full reset: erase everything and start with a blank headse
 $("resetAll").onclick=()=>resetArm($("resetAll"),"Press again to erase everything permanently",RESET_ALL_TEXT,async()=>{
   let n=0; for(const k of sessionKeys()){ eraseSessionKey(k,"full reset"); n++; }
   for(const k of archiveKeys()){ eraseSessionKey(k,"full reset"); n++; }
-  for(const k of ["study_ledger","study_locked","study_last_report","study_settings","study_site","study_seat","study_run","study_mip","study_steady","study_level","station_forms","noseOffsetDeg",CAL_INFO_KEY]){ try{ if(localStorage.getItem(k)!==null){ localStorage.removeItem(k); n++; } }catch(e){} }
+  for(const k of ["study_ledger","study_locked","study_last_report","study_settings","study_site","study_seat","study_run","study_mip","study_steady","study_level","study_boost","station_forms","noseOffsetDeg",CAL_INFO_KEY]){ try{ if(localStorage.getItem(k)!==null){ localStorage.removeItem(k); n++; } }catch(e){} }
   const forgot=await forgetClipFolder(); if(forgot) n++;
   S.noseOffset=null; S.seat="seat"; S.run="short"; S.info={}; S.events=[]; S.code=""; S.order=[]; S.files={}; S.match={}; S.idx=-1; S.phase="setup"; S.orderSeed=null; REP=null;
   try{ $("setSeat").value="seat"; $("setRun").value="short"; $("pcode").value=""; $("setTest").checked=false; tag("calTag","wait","NOT SET","the nose calibration was erased"); }catch(e){}
@@ -1272,7 +1294,10 @@ function buildScene(){
   const lineGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]);
   const lineMat=new THREE.LineBasicMaterial({color:0x5ac8e8});
   laserL=renderer.xr.getController(0); laserR=renderer.xr.getController(1);
-  for(const c of [laserL,laserR]){ const l=new THREE.Line(lineGeo,lineMat); l.scale.z=6; c.add(l); scene.add(c); }
+  for(const c of [laserL,laserR]){ const l=new THREE.Line(lineGeo,lineMat); l.scale.z=6; c.add(l); scene.add(c);
+    // 2.8.3: three.js hands out controller 0 and 1 in the order the headset lists them, which is NOT left/right. Remember the hand each one really is.
+    c.addEventListener("connected",e=>{ c.userData.hand=(e.data&&e.data.handedness)||"none"; log("controller "+c.userData.hand+" connected"); });
+    c.addEventListener("disconnected",()=>{ c.userData.hand=null; }); }
   renderer.setAnimationLoop(frame);
   // desktop preview controls: drag to look, click = trigger, B = fault panel
   let down=null;
@@ -1413,10 +1438,20 @@ function calFineUI(){ const on=S.noseOffset!==null; ["calL5","calL1","calR1","ca
 ["calL5","calL1","calR1","calR5"].forEach((id,i)=>{ const b=$(id); if(b) b.onclick=()=>calAdjust([-5,-1,1,5][i]); });
 
 // ---------- select handling (state machine) ----------
+// 2.8.3: the ray for a trigger pull comes from the controller that was pulled. First choice: the pose of that input source in this very frame
+// (independent of which three.js controller object it is). Fallback: the controller object whose remembered hand matches. Last resort: by index.
+function ctrlFor(hand){ if(hand&&laserL&&laserL.userData.hand===hand) return laserL; if(hand&&laserR&&laserR.userData.hand===hand) return laserR; return hand==="left"?laserL:laserR; }
+function selectRay(e){
+  const hand=(e.inputSource&&e.inputSource.handedness)||"unknown";
+  try{ const ref=renderer.xr.getReferenceSpace(); const pose=(e.frame&&e.inputSource&&e.inputSource.targetRaySpace)?e.frame.getPose(e.inputSource.targetRaySpace,ref):null;
+    if(pose){ const m=new THREE.Matrix4().fromArray(pose.transform.matrix); const pos=new THREE.Vector3().setFromMatrixPosition(m);
+      const dir=new THREE.Vector3(0,0,-1).transformDirection(m).normalize(); activeCtrl=ctrlFor(hand); return {pos,dir,hand,how:"pose"}; } }catch(err){ log("select pose failed: "+err.message); }
+  activeCtrl=ctrlFor(hand); const r=controllerRay(activeCtrl); r.hand=hand; r.how="object"; return r; }
 function onSelect(e){
   let r;
-  if(e.flat){ camera.getWorldDirection(_dir); r={pos:new THREE.Vector3(0,0,0), dir:_dir.clone()}; }
-  else { activeCtrl = e.inputSource && e.inputSource.handedness==="left" ? laserL : laserR; r=controllerRay(activeCtrl); }
+  if(e.flat){ camera.getWorldDirection(_dir); r={pos:new THREE.Vector3(0,0,0), dir:_dir.clone(), hand:"gaze", how:"flat"}; }
+  else { r=selectRay(e); }
+  S.lastHand=r.hand;
   if(S.phase==="calibrating"){ calibrationPoint(r.dir, e.flat?"gaze":"controller"); return; }
   if(S.phase==="calibrated"){ finishCalibration(); return; }
   if(S.phase==="takeoffQuestion"){ _ray.set(r.pos,r.dir); if(yesPanel&&_ray.intersectObject(yesPanel).length) answerTakeoff("yes"); else if(noPanel&&_ray.intersectObject(noPanel).length) answerTakeoff("no"); return; }
@@ -1432,12 +1467,12 @@ function onSelect(e){
   }
 }
 function recordDetection(){ S.phase="awaitingPoint"; vid.pause(); if(clipAudio) clipAudio.pause(); S.sightingSeq++;
-  S.lastDetection=ev("detection",{sighting:S.sightingSeq}); prompt(["FLIGHT PAUSED","Point at where you saw it, then press"]); sayAsync(AUDIO.narr("05_paused_point")); }
+  S.lastDetection=ev("detection",{sighting:S.sightingSeq, hand:S.lastHand||""}); prompt(["FLIGHT PAUSED","Point at where you saw it, then press"]); sayAsync(AUDIO.narr("05_paused_point")); }
 function askClass(){ S.phase="awaitingClass"; classPanels.forEach(m=>m.visible=true); prompt(["WHAT DID YOU SEE?","Point at one and press"]); }
 function classShow(on){ classPanels.forEach(m=>m.visible=!!on); }
-function recordClass(cls){ if(S.phase!=="awaitingClass") return; classShow(false); ev("sighting_class",{sighting:S.sightingSeq, note:cls});
+function recordClass(cls){ if(S.phase!=="awaitingClass") return; classShow(false); ev("sighting_class",{sighting:S.sightingSeq, note:cls, hand:S.lastHand||""});
   prompt(null); S.phase="playing"; sayAsync(AUDIO.narr("06_locked_in")); resumeMedia(); }
-function recordPointing(dir){ const ae=dirToAzEl(dir); ev("lock_in",{sighting:S.sightingSeq, az:ae.az, el:ae.el});
+function recordPointing(dir){ const ae=dirToAzEl(dir); ev("lock_in",{sighting:S.sightingSeq, az:ae.az, el:ae.el, hand:S.lastHand||""});
   try{ const rep=buildReport(resultsObject()); const p=rep.sightings[rep.sightings.length-1]; if(p) log(`resolved: ${p.classification}; pointed ${p.point_clock} ${p.point_el_deg} deg; drone ${p.true_clock||"n/a"} ${p.true_elevation_deg==null?"":p.true_elevation_deg+" deg"}; error ${p.pointing_error_total_deg==null?"n/a":p.pointing_error_total_deg+" deg"}; slant ${p.slant_range_ft==null?"n/a":p.slant_range_ft+" ft"}`); }catch(e){ log("resolve error "+e.message); }
   askClass(); }
 function noteFault(){ if(!S.sightingSeq){ return; } classShow(false); ev("fault_flag",{sighting:S.sightingSeq}); prompt(null); S.phase="playing"; sayAsync(AUDIO.narr("07_fault_noted")); resumeMedia(); }
@@ -1475,7 +1510,7 @@ async function startClip(){
   if(S.restartPending===tc){ const prev=S.events.filter(e=>e.clip===tc&&e.type!=="clip_start"&&e.clipTime!=null); const from=prev.length?prev[prev.length-1].clipTime:null;
     S.sightingSeq=S.events.filter(e=>e.type==="detection"&&e.clip===tc).length; ev("replay",{reason:"approach restarted from its beginning after a reload or crash", from_clip_time_s:from, sighting:S.sightingSeq, pending_pointing:false}); S.restartPending=null; }
   vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio);
-      clipAudio.play().then(()=>ev("clip_audio_start",{tc, source:SND[tc]?"held in the headset":"from the website", presenting:!!(renderer&&renderer.xr.isPresenting), volume_at_start:+clipAudio.volume.toFixed(2)}))
+      boostResume(); clipAudio.play().then(()=>ev("clip_audio_start",{tc, boost:boostState(), source:SND[tc]?"held in the headset":"from the website", presenting:!!(renderer&&renderer.xr.isPresenting), volume_at_start:+clipAudio.volume.toFixed(2)}))
                       .catch(e=>{ log("clip audio blocked: "+e.message); ev("clip_audio_blocked",{tc, message:e.message}); });
       audioWatch(tc); }).catch(e=>log("video play failed "+e.message));
   if(S.idx===0){ setTimeout(()=>{ if(S.phase==="playing") { sayAsync(AUDIO.papi); ev("papi_advisory_played"); } },3000); }
@@ -1567,7 +1602,7 @@ $("beginBtn").onclick=async()=>{ primeAudio("Ready"); S.code=$("pcode").value.tr
   S.started=new Date().toISOString(); S.events=keep.map((e,i)=>Object.assign({},e,{seq:i+1})); S.idx=-1; S.sightingSeq=0; S.answersLogged=false; fieldLogged=false; S.interruptedPhase=null;
   if(!S.info||!S.info.date) S.info=Object.assign({},INFO_BLANK,S.info||{},{code:S.code,date:localStamp().slice(0,10),start_time_local:localStamp().slice(11,16)}); else S.info.code=S.code; infoUI();
   S.orderSeed=orderSeed($("pcode").value); S.restartPending=null;
-  const ci=calInfo()||{}; ev("session_start",{version:VERSION, order:S.order.join(" "), order_seed:S.orderSeed, order_method:ORDER_METHOD, noseOffsetDeg:S.noseOffset, nose_method:ci.method||"", nose_fine_tuned_deg:ci.fine_tuned_deg==null?"":ci.fine_tuned_deg, horizon_roll_deg:levelRoll, horizon_pitch_deg:levelPitch, seat_offset:S.seat, seat_offset_fwd:SEAT_OFFSETS[S.seat].fwd, seat_offset_down:SEAT_OFFSETS[S.seat].down, testMode:S.testMode, run_length:S.run==="full"?"full clip (about 3 min)":("the last "+RUN_LEN_S+" s of each clip"), run_start_s:S.run==="full"?0:("last "+RUN_LEN_S+" s of each clip"), run_length_s:S.run==="full"?"":RUN_LEN_S, takeoff_from_s:TAKEOFF_FROM_S, takeoff_to_s:TAKEOFF_TO_S}); $("beginBtn").disabled=true; S.phase="participant"; READERS.consent.reset(); READERS.briefing.reset(); READERS.debrief.reset(); answersReset(); $("psDeclined").dataset.confirm=""; $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-welcome"); };
+  const ci=calInfo()||{}; ev("session_start",{version:VERSION, sound_boost:boostGain, order:S.order.join(" "), order_seed:S.orderSeed, order_method:ORDER_METHOD, noseOffsetDeg:S.noseOffset, nose_method:ci.method||"", nose_fine_tuned_deg:ci.fine_tuned_deg==null?"":ci.fine_tuned_deg, horizon_roll_deg:levelRoll, horizon_pitch_deg:levelPitch, seat_offset:S.seat, seat_offset_fwd:SEAT_OFFSETS[S.seat].fwd, seat_offset_down:SEAT_OFFSETS[S.seat].down, testMode:S.testMode, run_length:S.run==="full"?"full clip (about 3 min)":("the last "+RUN_LEN_S+" s of each clip"), run_start_s:S.run==="full"?0:("last "+RUN_LEN_S+" s of each clip"), run_length_s:S.run==="full"?"":RUN_LEN_S, takeoff_from_s:TAKEOFF_FROM_S, takeoff_to_s:TAKEOFF_TO_S}); $("beginBtn").disabled=true; S.phase="participant"; READERS.consent.reset(); READERS.briefing.reset(); READERS.debrief.reset(); answersReset(); $("psDeclined").dataset.confirm=""; $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-welcome"); };
 async function runIntro(){ const names=["Welcome and safety","Flight briefing","How to respond","Ready"]; $("enterBtn").style.display="none";
   for(let i=0;i<NARR.length;i++){ $("introStep").textContent=`${i+1} of 4`; $("introName").textContent=names[i]; await playSound(AUDIO.narr(NARR[i])); }
   $("introText").textContent="When you are ready, press the button below."; $("enterBtn").style.display="block"; }
@@ -1588,7 +1623,7 @@ function makeReader(o){ const R={audio:null, unlocked:false, ended:false};
   R.toggle=()=>{ const a=R.audio;
     if(a&&!R.ended){ if(a.paused){ a.play().catch(()=>{}); $(o.play).textContent="Pause the recording"; ev(o.name+"_audio_resumed",{screen:o.screen}); } else { a.pause(); $(o.play).textContent="Resume the recording"; ev(o.name+"_audio_paused",{screen:o.screen}); } upd(); return; }
     if(a&&R.ended){ R.ended=false; a.currentTime=0; a.play().catch(()=>{}); $(o.play).textContent="Pause the recording"; ev(o.name+"_audio_replayed",{screen:o.screen}); return; }
-    const n=new Audio(o.src); R.audio=n; n.preload="auto"; n.ontimeupdate=upd; n.onloadedmetadata=upd;
+    const n=mkAudio(o.src); R.audio=n; n.preload="auto"; n.ontimeupdate=upd; n.onloadedmetadata=upd;
     n.onended=()=>{ R.ended=true; upd(); $(o.bar).style.width="100%"; $(o.play).textContent="Play the recording again"; if(!R.unlocked){ ev(o.name+"_audio_end",{screen:o.screen}); } R.unlock(); };
     n.onerror=()=>{ ev("audio_error",{screen:o.screen, note:o.src}); $(o.time).textContent="The recording could not be played. Please read the text; the researcher can unlock the button."; R.audio=null; $(o.play).textContent=o.startLabel; };
     n.play().then(()=>{ ev(o.name+"_audio_start",{screen:o.screen}); $(o.play).textContent="Pause the recording"; }).catch(e=>{ log("reading blocked: "+e.message); R.audio=null; $(o.time).textContent="Press the button again to start the recording."; $(o.play).textContent=o.startLabel; }); };
@@ -1627,7 +1662,7 @@ async function startTakeoff(){ S.idx=-1; S.phase="loading";
   if(OPTIONAL_NARR.takeoff_intro&&optionalOK[OPTIONAL_NARR.takeoff_intro]!==false){ prompt(["TAKEOFF","Look around as you normally would"]); const played=await sayOptionalWait("takeoff_intro",()=>ev("takeoff_intro_start",{tc:TAKEOFF, video_time_s:+vid.currentTime.toFixed(3), video_waiting:vid.paused})); if(played) ev("takeoff_intro_end",{tc:TAKEOFF}); if(S.phase!=="loading") return; }
   prompt(null); steadySet(TAKEOFF); S.phase="takeoff"; ev("takeoff_start",{tc:TAKEOFF, from_clip_time_s:TAKEOFF_FROM_S, to_clip_time_s:TAKEOFF_TO_S, steady:steadyState(TAKEOFF)});
   vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio);
-      clipAudio.play().then(()=>ev("clip_audio_start",{tc:TAKEOFF, source:SND[TAKEOFF]?"held in the headset":"from the website", presenting:!!(renderer&&renderer.xr.isPresenting), volume_at_start:+clipAudio.volume.toFixed(2)}))
+      boostResume(); clipAudio.play().then(()=>ev("clip_audio_start",{tc:TAKEOFF, boost:boostState(), source:SND[TAKEOFF]?"held in the headset":"from the website", presenting:!!(renderer&&renderer.xr.isPresenting), volume_at_start:+clipAudio.volume.toFixed(2)}))
                       .catch(e=>{ log("takeoff audio blocked: "+e.message); ev("clip_audio_blocked",{tc:TAKEOFF, message:e.message}); });
       audioWatch(TAKEOFF); }).catch(e=>log("takeoff video play failed "+e.message)); }
 // after the takeoff: "Did you notice anything unusual?" answered by pointing at YES or NO, then the participant continues
@@ -1711,7 +1746,7 @@ function xlsxBlob(rep){ if(!window.XLSX) return null; const wb=XLSX.utils.book_n
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rep.events.map(e=>{ const o={}; EVENT_COLS.forEach(k=>o[k]=e[k]===undefined?"":e[k]); return o; }), {header:EVENT_COLS}), "Event log");
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}); }
 // ---------- reset this headset (researcher only) ----------
-const RESET_FIXED = ["study_ledger","study_locked","study_settings","study_site","study_last_report","study_seat","study_run","study_mip","study_steady","study_level","noseCalInfo","study_erasures"];
+const RESET_FIXED = ["study_ledger","study_locked","study_settings","study_site","study_last_report","study_seat","study_run","study_mip","study_steady","study_level","study_boost","noseCalInfo","study_erasures"];
 function lsKeys(){ const out=[]; try{ for(let i=0;i<localStorage.length;i++) out.push(localStorage.key(i)); }catch(e){} return out; }
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function isSessionKey(k){ if(!/^study_/.test(k)) return false; if(/^study_archive_/.test(k)) return false; if(RESET_FIXED.includes(k)) return false;
@@ -1900,6 +1935,10 @@ let mipOn=false; try{ mipOn=localStorage.getItem("study_mip")==="on"; }catch(e){
 function mipApply(){ if(!vtex) return; vtex.generateMipmaps=mipOn; vtex.minFilter=mipOn?THREE.LinearMipmapLinearFilter:THREE.LinearFilter; vtex.needsUpdate=true; }
 if($("setRoll")){ levelUI(); const rd=()=>levelSet(parseFloat($("setRoll").value),parseFloat($("setPitch").value),"setup screen"); $("setRoll").onchange=rd; $("setPitch").onchange=rd; $("levelReset").onclick=()=>levelSet(9.0,2.5,"measured values restored"); }
 if($("setSteady")){ $("setSteady").value=steadyOn?"on":"off"; $("setSteady").onchange=()=>{ steadyOn=$("setSteady").value==="on"; try{ localStorage.setItem("study_steady",steadyOn?"on":"off"); }catch(e){} steadyUI(); log("picture steadying "+(steadyOn?"on":"off")); }; steadyUI(); }
+if($("setBoost")){ $("setBoost").value=String(boostGain); $("setBoost").onchange=()=>{ boostGain=parseFloat($("setBoost").value)||1; try{ localStorage.setItem("study_boost",String(boostGain)); }catch(e){}
+  if(boostNode) boostNode.gain.value=boostGain; boostUI(); log("sound boost set to x"+boostGain); }; }
+function boostUI(){ if(!$("boostTag")) return; const st=boostState(); tag("boostTag",boostGain>1?"ok":"wait","x"+boostGain,(boostGain>1?"soundtrack and narration are raised by "+(20*Math.log10(boostGain)).toFixed(1)+" dB through a limiter":"files play at their own level")+"; graph: "+st.ctx); }
+boostUI();
 if($("setMip")){ $("setMip").value=mipOn?"on":"off"; $("setMip").onchange=()=>{ mipOn=$("setMip").value==="on"; try{ localStorage.setItem("study_mip",mipOn?"on":"off"); }catch(e){} mipApply(); log("fine detail set to "+(mipOn?"smoothed (mipmaps)":"sharp (no mipmaps)")); }; }
 const SET={ email:"jbeim@yahoo.com", key:"" };
 try{ Object.assign(SET, JSON.parse(localStorage.getItem("study_settings")||"{}")); }catch(e){}
@@ -2012,7 +2051,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,viewState:()=>({viewRef,viewTrimDeg,alignPending,texVF,mipOn,volumeFixes,worldYaw:world?world.rotation.y:null,promptLines,lastFlash}),viewTrim,viewRecentre,calAdjust,calNudge,calRedo,rampIn,volumeGuard,texMode,MOTION,steadySet,steadyFrame,steadyState,setSteady:v=>{ steadyOn=!!v; },renderer:()=>renderer,setRenderHook:f=>{ renderHook=f; },recordClass,SIGHT_CLASSES,classPanels:()=>classPanels,levelSet,levelState:()=>({roll:levelRoll,pitch:levelPitch}),runStartFor,tiltUpdate,runLenS:()=>RUN_LEN_S,steadyApplied:()=>steadyApplied,vtex:()=>vtex,
+if(location.hash==="#debug"){ window.__debug={ boostState, ctrlFor, selectRay, ctrls:()=>[laserL,laserR], SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,viewState:()=>({viewRef,viewTrimDeg,alignPending,texVF,mipOn,volumeFixes,worldYaw:world?world.rotation.y:null,promptLines,lastFlash}),viewTrim,viewRecentre,calAdjust,calNudge,calRedo,rampIn,volumeGuard,texMode,MOTION,steadySet,steadyFrame,steadyState,setSteady:v=>{ steadyOn=!!v; },renderer:()=>renderer,setRenderHook:f=>{ renderHook=f; },recordClass,SIGHT_CLASSES,classPanels:()=>classPanels,levelSet,levelState:()=>({roll:levelRoll,pitch:levelPitch}),runStartFor,tiltUpdate,runLenS:()=>RUN_LEN_S,steadyApplied:()=>steadyApplied,vtex:()=>vtex,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();
