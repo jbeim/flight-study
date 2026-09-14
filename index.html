@@ -685,7 +685,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.8.1 (2026-09-14, every approach is the last 2 minutes of its clip; the takeoff starts 5 s earlier on the runway; the camera's mount tilt is levelled so the cockpit and the panels sit square (roll 9 deg, pitch 2.5 deg, measured from the takeoff clip, adjustable);  engine sound: the volume ramp no longer depends on the page animation clock, which the headset stops in VR, so the soundtrack no longer plays at zero volume; the cockpit stays where it was put between approaches, with grip-hold to recentre and thumbstick to trim; nose calibration by pointing, with fine-tuning; video frames uploaded once per frame instead of once per screen refresh)";
+const VERSION = "study-app 2.8.2 (2026-09-14, after each lock-in the participant says what it was (DRONE, OTHER AIRCRAFT, BIRD, OTHER) by pointing at a panel, and presses on things that are not drones are counted as other sightings instead of false alarms; every approach is the last 2 minutes of its clip; the takeoff starts 5 s earlier on the runway; the camera's mount tilt is levelled so the cockpit and the panels sit square (roll 9 deg, pitch 2.5 deg, measured from the takeoff clip, adjustable);  engine sound: the volume ramp no longer depends on the page animation clock, which the headset stops in VR, so the soundtrack no longer plays at zero volume; the cockpit stays where it was put between approaches, with grip-hold to recentre and thumbstick to trim; nose calibration by pointing, with fine-tuning; video frames uploaded once per frame instead of once per screen refresh)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -769,23 +769,29 @@ function droneStateAt(tc, utc){ const c=TEL&&TEL.cards[tc]; if(!c||!c.drone||utc
   const m=TEL.meta; d.drone_dist_from_thr_ft=r0(haversineFt(m.threshold_lat,m.threshold_lon,d.drone_lat,d.drone_lon)); d.drone_bearing_from_thr_deg=r1(bearingDeg(m.threshold_lat,m.threshold_lon,d.drone_lat,d.drone_lon));
   d.bearing_drone_to_aircraft_deg=r1((d.bearing_to_drone_true_deg+180)%360); d.clock=clockPos(d.relative_bearing_deg); d.above_below=d.elevation_angle_deg>=0?"above":"below"; return d; }
 // Classify one press on one card
-function classifyPress(tc, utc, withdrawn){ const c=TEL&&TEL.cards[tc]; if(!c) return {cls:"UNSCORED", why:"no telemetry for this card"};
+// 2.8.2: the participant is asked for any outside sighting (recording 3, script v4.6), so after the lock-in they say what it was.
+// A press reported as OTHER AIRCRAFT, BIRD or OTHER that falls outside a drone window is an OTHER SIGHTING, not a false alarm of the
+// benchmark kind. A press inside the drone window stays a HIT whatever it was called (they found the object); the report keeps the word.
+// A press with no report (older session, or the panel was skipped) is scored as before.
+const SIGHT_CLASSES=["DRONE","OTHER AIRCRAFT","BIRD","OTHER"];
+function classifyPress(tc, utc, withdrawn, reported){ const c=TEL&&TEL.cards[tc]; if(!c) return {cls:"UNSCORED", why:"no telemetry for this card"};
   if(withdrawn) return {cls:"WITHDRAWN", why:"participant flagged this press as a mistake"};
-  if(!c.target) return {cls:"FALSE ALARM", why:"no drone in this scenario"};
+  const other=reported&&reported!=="DRONE"; const fa=why=>other?{cls:"OTHER SIGHTING", why:why+"; reported as "+reported.toLowerCase()}:{cls:"FALSE ALARM", why};
+  if(!c.target) return fa("no drone in this scenario");
   if(!c.window) return {cls:"UNSCORED", why:"target card without a visibility window"};
-  const w=c.window; if(utc<w.enters-HIT_LEAD_S) return {cls:"FALSE ALARM", why:`press ${r1(w.enters-utc)} s before the drone entered view`};
-  if(utc>w.leaves+HIT_LAG_S) return {cls:"FALSE ALARM", why:`press ${r1(utc-w.leaves)} s after the drone left view`};
-  return {cls:"HIT", why:"press inside the drone's visibility window"}; }
+  const w=c.window; if(utc<w.enters-HIT_LEAD_S) return fa(`press ${r1(w.enters-utc)} s before the drone entered view`);
+  if(utc>w.leaves+HIT_LAG_S) return fa(`press ${r1(utc-w.leaves)} s after the drone left view`);
+  return {cls:"HIT", why:"press inside the drone's visibility window"+(reported?"; reported as "+reported.toLowerCase():"")}; }
 // Build the full report from a results object
 function buildReport(R){
   const cards=[], sightings=[]; const byClip={}; R.events.forEach(e=>{ if(e.clip){ (byClip[e.clip]=byClip[e.clip]||[]).push(e); } });
   const clipStarts={}; R.events.filter(e=>e.type==="clip_start").forEach(e=>{ clipStarts[e.clip]=e; });
   const order=R.order||[]; const presented=order.filter(tc=>clipStarts[tc]);
   presented.forEach((tc,pi)=>{ const c=TEL?TEL.cards[tc]:null; const evs=byClip[tc]||[]; const dets=evs.filter(e=>e.type==="detection"); const ended=evs.some(e=>e.type==="clip_end"||e.type==="session_end");
-    const presses=dets.map(d=>{ const lock=evs.find(x=>x.type==="lock_in"&&x.sighting===d.sighting); const fault=evs.find(x=>x.type==="fault_flag"&&x.sighting===d.sighting);
-      const utc=utcSec(d.utc); const cl=classifyPress(tc,utc,!!fault); const ac=acStateAt(tc,utc); const dr=droneStateAt(tc,utc); const w=c&&c.window;
+    const presses=dets.map(d=>{ const lock=evs.find(x=>x.type==="lock_in"&&x.sighting===d.sighting); const fault=evs.find(x=>x.type==="fault_flag"&&x.sighting===d.sighting); const scl=evs.find(x=>x.type==="sighting_class"&&x.sighting===d.sighting);
+      const utc=utcSec(d.utc); const cl=classifyPress(tc,utc,!!fault,scl?scl.note:""); const ac=acStateAt(tc,utc); const dr=droneStateAt(tc,utc); const w=c&&c.window;
       const p={ participant:R.participant, position:pi+1, card:tc, target:c?c.target:null, platform:c?c.platform:"", sighting:d.sighting, press_clip_time_s:d.clipTime, press_utc:d.utc, press_wall:d.wall,
-        classification:cl.cls, reason:cl.why, withdrawn:!!fault, locked_in:!!lock,
+        classification:cl.cls, reason:cl.why, withdrawn:!!fault, locked_in:!!lock, reported_as:scl?scl.note:"",
         time_to_threshold_s: ac?ac.time_to_threshold_s:null,
         rt_from_enters_s: w?r1(utc-w.enters):null, rt_from_first_visible_s: w?r1(utc-w.first):null, seconds_before_closest_point: w?r1(w.closest-utc):null,
         point_az_deg: lock?lock.az:null, point_el_deg: lock?lock.el:null, point_clock: lock?clockPos(lock.az):null, lock_delay_s: lock?r1((lock.t_ms-d.t_ms)/1000):null,
@@ -798,21 +804,22 @@ function buildReport(R){
         ac_dist_from_thr_ft: ac?ac.dist_from_thr_ft:null, ac_dist_from_thr_nm: ac?Math.round(ac.dist_from_thr_nm*1000)/1000:null, ac_bearing_from_thr_deg: ac?ac.bearing_from_thr_deg:null, ac_phase: ac?ac.phase:null, telemetry_extrapolated: (ac&&ac.extrapolated)||(dr&&dr.extrapolated)?1:0 };
       if(lock&&dr){ const azT=((dr.relative_bearing_deg%360)+360)%360; p.pointing_error_total_deg=r1(angSep(lock.az,lock.el,azT,dr.elevation_angle_deg)); p.pointing_error_az_deg=r1(wrap180(lock.az-azT)); p.pointing_error_el_deg=r1(lock.el-dr.elevation_angle_deg); }
       sightings.push(p); return p; });
-    const valid=presses.filter(p=>!p.withdrawn); const hits=valid.filter(p=>p.classification==="HIT"); const fas=valid.filter(p=>p.classification==="FALSE ALARM"); const uns=valid.filter(p=>p.classification==="UNSCORED");
+    const valid=presses.filter(p=>!p.withdrawn); const hits=valid.filter(p=>p.classification==="HIT"); const fas=valid.filter(p=>p.classification==="FALSE ALARM"); const uns=valid.filter(p=>p.classification==="UNSCORED"); const oth=valid.filter(p=>p.classification==="OTHER SIGHTING");
     let outcome, scoreable=true;
     if(!c){ outcome="UNSCORED"; scoreable=false; }
     else if(c.target&&c.window){ outcome=hits.length?"HIT":(ended?"MISS":"INCOMPLETE"); }
     else if(c.target){ outcome=valid.length?"PRESSED (unscored)":"NO PRESS (unscored)"; scoreable=false; }
-    else { outcome=valid.length?"FALSE ALARM":(ended?"CORRECT REJECTION":"INCOMPLETE"); }
+    else { outcome=fas.length?"FALSE ALARM":(ended?"CORRECT REJECTION":"INCOMPLETE"); }   // other sightings on a control card do not make it a false alarm
     const rates=evs.filter(e=>e.type==="playback_rate"&&e.fps).map(e=>e.fps); const replays=evs.filter(e=>e.type==="replay").length;
-    cards.push({ participant:R.participant, position:pi+1, card:tc, target:c?c.target:null, platform:c?c.platform:"", stimulus:(c&&c.corrected)?"corrected":"as recorded", modeled_track:(c&&c.modeled)?1:0, scoreable, outcome, presses:presses.length, replays, withdrawn:presses.length-valid.length, hits:hits.length, false_alarms:fas.length, unscored_presses:uns.length,
+    cards.push({ participant:R.participant, position:pi+1, card:tc, target:c?c.target:null, platform:c?c.platform:"", stimulus:(c&&c.corrected)?"corrected":"as recorded", modeled_track:(c&&c.modeled)?1:0, scoreable, outcome, presses:presses.length, replays, withdrawn:presses.length-valid.length, hits:hits.length, false_alarms:fas.length, other_sightings:oth.length, unscored_presses:uns.length,
       first_hit_rt_from_enters_s: hits.length?hits[0].rt_from_enters_s:null, first_hit_rt_from_first_visible_s: hits.length?hits[0].rt_from_first_visible_s:null, first_hit_time_to_threshold_s: hits.length?hits[0].time_to_threshold_s:null, first_hit_slant_range_ft: hits.length?hits[0].slant_range_ft:null,
       best_pointing_error_deg: hits.filter(h=>h.pointing_error_total_deg!=null).length?Math.min(...hits.filter(h=>h.pointing_error_total_deg!=null).map(h=>h.pointing_error_total_deg)):null,
       window_enters_utc: c&&c.window?secToUTC(c.window.enters):"", window_leaves_utc: c&&c.window?secToUTC(c.window.leaves):"", window_enters_clip_s: c&&c.window?r1(c.window.enters-utcSec(clipUTC(tc,0))):null, window_leaves_clip_s: c&&c.window?r1(c.window.leaves-utcSec(clipUTC(tc,0))):null,
       threshold_clip_s: c?r1(c.thr_utc-utcSec(clipUTC(tc,0))):null, playback_fps_mean: rates.length?r1(rates.reduce((a,b)=>a+b,0)/rates.length):null, completed:ended, presses_detail:presses }); });
   const sc=cards.filter(c=>c.scoreable); const tgt=sc.filter(c=>c.target), ctl=sc.filter(c=>!c.target);
   const nHit=tgt.filter(c=>c.outcome==="HIT").length, nMiss=tgt.filter(c=>c.outcome==="MISS").length, nFAcards=ctl.filter(c=>c.outcome==="FALSE ALARM").length, nCR=ctl.filter(c=>c.outcome==="CORRECT REJECTION").length;
-  const allValid=sightings.filter(s=>!s.withdrawn); const hitP=allValid.filter(s=>s.classification==="HIT"); const faP=allValid.filter(s=>s.classification==="FALSE ALARM");
+  const allValid=sightings.filter(s=>!s.withdrawn); const hitP=allValid.filter(s=>s.classification==="HIT"); const faP=allValid.filter(s=>s.classification==="FALSE ALARM"); const othP=allValid.filter(s=>s.classification==="OTHER SIGHTING");
+  const nBy=k=>allValid.filter(s=>s.reported_as===k).length;
   const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null; const med=a=>{ if(!a.length) return null; const s=a.slice().sort((x,y)=>x-y); const m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
   const H=(nHit+0.5)/(tgt.length+1), F=(nFAcards+0.5)/(ctl.length+1); const r3=v=>Math.round(v*1000)/1000; const dprime=tgt.length&&ctl.length?r3(zInv(H)-zInv(F)):null; const crit=tgt.length&&ctl.length?r3(-(zInv(H)+zInv(F))/2):null;
   const tim=sessionTiming(R.events);
@@ -822,7 +829,8 @@ function buildReport(R){
     target_cards_scoreable:tgt.length, hits:nHit, misses:nMiss, hit_rate:tgt.length?r1(nHit/tgt.length*100)/100:null,
     control_cards:ctl.length, false_alarm_cards:nFAcards, correct_rejections:nCR, false_alarm_rate:ctl.length?r1(nFAcards/ctl.length*100)/100:null,
     d_prime_loglinear:dprime, criterion_c:crit,
-    presses_total:sightings.length, presses_withdrawn:sightings.length-allValid.length, hit_presses:hitP.length, false_alarm_presses:faP.length, unscored_presses:allValid.filter(s=>s.classification==="UNSCORED").length,
+    presses_total:sightings.length, presses_withdrawn:sightings.length-allValid.length, hit_presses:hitP.length, false_alarm_presses:faP.length, other_sighting_presses:othP.length, unscored_presses:allValid.filter(s=>s.classification==="UNSCORED").length,
+    reported_drone:nBy("DRONE"), reported_other_aircraft:nBy("OTHER AIRCRAFT"), reported_bird:nBy("BIRD"), reported_other:nBy("OTHER"), reported_none:allValid.filter(s=>!s.reported_as).length,
     mean_rt_from_enters_s:r1(mean(hitP.map(s=>s.rt_from_enters_s).filter(v=>v!=null))), median_rt_from_enters_s:r1(med(hitP.map(s=>s.rt_from_enters_s).filter(v=>v!=null))),
     mean_rt_from_first_visible_s:r1(mean(hitP.map(s=>s.rt_from_first_visible_s).filter(v=>v!=null))),
     mean_hit_slant_range_ft:r0(mean(hitP.map(s=>s.slant_range_ft).filter(v=>v!=null))),
@@ -862,15 +870,16 @@ function participantRow(rep){ const s=rep.summary; const r={ participant:s.parti
     certificate:s.info_certificate||"", instructor:s.info_instructor||"", total_hours:s.info_total_hours||"", recent_hours:s.info_recent_hours||"", vision:s.info_vision||"", vr_experience:s.info_vr_experience||"", prior_drone_sighting:s.info_prior_drone_sighting||"", consent_signed:s.info_consent_signed||"", consent_audio:s.info_consent_audio||"", consent_followup:s.info_consent_followup||"", session_notes:s.info_notes||"",
     issues_count:s.issues_count||0, issues_major:s.issues_major||0, issues_text:s.issues_text||"", software:s.software, test_mode:s.test_mode, order:s.order, order_seed:s.order_seed, order_method:s.order_method, order_as_presented:s.order_as_presented, seat_offset:s.seat_offset, seat_offset_fwd:s.seat_offset_fwd, seat_offset_down:s.seat_offset_down, resumed_after_reload:s.resumed_after_reload, headset_on:s.headset_on, headset_off:s.headset_off, minutes_in_instrument:s.minutes_in_instrument, minutes_break:s.minutes_break, minutes_approaches_only:s.minutes_approaches_only, minutes_session_total:s.minutes_session_total,
     stimulus_correction_factor:s.stimulus_correction_factor, cards_as_recorded:s.cards_as_recorded, hits:s.hits, misses:s.misses, false_alarm_cards:s.false_alarm_cards, correct_rejections:s.correct_rejections, hit_rate:s.hit_rate, false_alarm_rate:s.false_alarm_rate, d_prime:s.d_prime_loglinear, criterion_c:s.criterion_c,
-    presses_total:s.presses_total, hit_presses:s.hit_presses, false_alarm_presses:s.false_alarm_presses, unscored_presses:s.unscored_presses, withdrawn_presses:s.presses_withdrawn,
+    presses_total:s.presses_total, hit_presses:s.hit_presses, false_alarm_presses:s.false_alarm_presses, other_sighting_presses:s.other_sighting_presses, unscored_presses:s.unscored_presses, withdrawn_presses:s.presses_withdrawn,
+    reported_drone:s.reported_drone, reported_other_aircraft:s.reported_other_aircraft, reported_bird:s.reported_bird, reported_other:s.reported_other, reported_none:s.reported_none,
     mean_rt_s:s.mean_rt_from_enters_s, median_rt_s:s.median_rt_from_enters_s, mean_rt_first_visible_s:s.mean_rt_from_first_visible_s, mean_hit_slant_ft:s.mean_hit_slant_range_ft, mean_pointing_error_deg:s.mean_pointing_error_deg, median_pointing_error_deg:s.median_pointing_error_deg, nose_offset_deg:s.nose_offset_deg };
   FLOW_KEYS.forEach(k=>{ r[k]=s[k]==null?"":s[k]; });
   CLIPS.forEach(tc=>{ const c=rep.cards.find(x=>x.card===tc); r[tc+"_position"]=c?c.position:null; r[tc+"_outcome"]=c?c.outcome:"not presented"; r[tc+"_presses"]=c?c.presses:null; r[tc+"_rt_s"]=c?c.first_hit_rt_from_enters_s:null; r[tc+"_slant_ft"]=c?c.first_hit_slant_range_ft:null; r[tc+"_pointing_error_deg"]=c?c.best_pointing_error_deg:null; }); return r; }
-const ROW_COLS=(()=>{ const base=["participant","date","start_time_local","researcher","venue","headset","certificate","instructor","total_hours","recent_hours","vision","vr_experience","prior_drone_sighting","consent_signed","consent_audio","consent_followup","session_notes","issues_count","issues_major","issues_text","software","test_mode","order","order_seed","order_method","order_as_presented","seat_offset","seat_offset_fwd","seat_offset_down","resumed_after_reload","headset_on","headset_off","minutes_in_instrument","minutes_break","minutes_approaches_only","minutes_session_total","stimulus_correction_factor","cards_as_recorded","hits","misses","false_alarm_cards","correct_rejections","hit_rate","false_alarm_rate","d_prime","criterion_c","presses_total","hit_presses","false_alarm_presses","unscored_presses","withdrawn_presses","mean_rt_s","median_rt_s","mean_rt_first_visible_s","mean_hit_slant_ft","mean_pointing_error_deg","median_pointing_error_deg","nose_offset_deg",...FLOW_KEYS]; CLIPS.forEach(tc=>base.push(tc+"_position",tc+"_outcome",tc+"_presses",tc+"_rt_s",tc+"_slant_ft",tc+"_pointing_error_deg")); return base; })();
+const ROW_COLS=(()=>{ const base=["participant","date","start_time_local","researcher","venue","headset","certificate","instructor","total_hours","recent_hours","vision","vr_experience","prior_drone_sighting","consent_signed","consent_audio","consent_followup","session_notes","issues_count","issues_major","issues_text","software","test_mode","order","order_seed","order_method","order_as_presented","seat_offset","seat_offset_fwd","seat_offset_down","resumed_after_reload","headset_on","headset_off","minutes_in_instrument","minutes_break","minutes_approaches_only","minutes_session_total","stimulus_correction_factor","cards_as_recorded","hits","misses","false_alarm_cards","correct_rejections","hit_rate","false_alarm_rate","d_prime","criterion_c","presses_total","hit_presses","false_alarm_presses","other_sighting_presses","unscored_presses","withdrawn_presses","reported_drone","reported_other_aircraft","reported_bird","reported_other","reported_none","mean_rt_s","median_rt_s","mean_rt_first_visible_s","mean_hit_slant_ft","mean_pointing_error_deg","median_pointing_error_deg","nose_offset_deg",...FLOW_KEYS]; CLIPS.forEach(tc=>base.push(tc+"_position",tc+"_outcome",tc+"_presses",tc+"_rt_s",tc+"_slant_ft",tc+"_pointing_error_deg")); return base; })();
 // ---------- text and file renderers ----------
 function csvOf(rows, cols){ const esc=v=>{ if(v==null) return ""; const s=String(v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }; cols=cols||Object.keys(rows[0]||{}); return [cols.join(",")].concat(rows.map(r=>cols.map(c=>esc(r[c])).join(","))).join("\r\n"); }
-const SIGHT_COLS=["participant","position","card","target","platform","sighting","classification","reason","withdrawn","locked_in","press_clip_time_s","press_utc","press_wall","time_to_threshold_s","rt_from_enters_s","rt_from_first_visible_s","seconds_before_closest_point","point_az_deg","point_el_deg","point_clock","lock_delay_s","true_rel_bearing_deg","true_elevation_deg","true_clock","pointing_error_total_deg","pointing_error_az_deg","pointing_error_el_deg","slant_range_ft","horizontal_sep_ft","vertical_sep_ft","drone_above_below","bearing_ac_to_drone_true_deg","bearing_drone_to_ac_true_deg","drone_lat","drone_lon","drone_alt_ft_msl","drone_dist_from_thr_ft","drone_bearing_from_thr_deg","ac_lat","ac_lon","ac_alt_ft_msl","ac_ht_above_thr_ft","ac_gs_kt","ac_track_deg","ac_dist_from_thr_ft","ac_dist_from_thr_nm","ac_bearing_from_thr_deg","ac_phase","telemetry_extrapolated"];
-const CARD_COLS=["participant","position","card","target","platform","stimulus","modeled_track","scoreable","outcome","presses","replays","withdrawn","hits","false_alarms","unscored_presses","first_hit_rt_from_enters_s","first_hit_rt_from_first_visible_s","first_hit_time_to_threshold_s","first_hit_slant_range_ft","best_pointing_error_deg","window_enters_clip_s","window_leaves_clip_s","threshold_clip_s","window_enters_utc","window_leaves_utc","playback_fps_mean","completed"];
+const SIGHT_COLS=["participant","position","card","target","platform","sighting","classification","reason","reported_as","withdrawn","locked_in","press_clip_time_s","press_utc","press_wall","time_to_threshold_s","rt_from_enters_s","rt_from_first_visible_s","seconds_before_closest_point","point_az_deg","point_el_deg","point_clock","lock_delay_s","true_rel_bearing_deg","true_elevation_deg","true_clock","pointing_error_total_deg","pointing_error_az_deg","pointing_error_el_deg","slant_range_ft","horizontal_sep_ft","vertical_sep_ft","drone_above_below","bearing_ac_to_drone_true_deg","bearing_drone_to_ac_true_deg","drone_lat","drone_lon","drone_alt_ft_msl","drone_dist_from_thr_ft","drone_bearing_from_thr_deg","ac_lat","ac_lon","ac_alt_ft_msl","ac_ht_above_thr_ft","ac_gs_kt","ac_track_deg","ac_dist_from_thr_ft","ac_dist_from_thr_nm","ac_bearing_from_thr_deg","ac_phase","telemetry_extrapolated"];
+const CARD_COLS=["participant","position","card","target","platform","stimulus","modeled_track","scoreable","outcome","presses","replays","withdrawn","hits","false_alarms","other_sightings","unscored_presses","first_hit_rt_from_enters_s","first_hit_rt_from_first_visible_s","first_hit_time_to_threshold_s","first_hit_slant_range_ft","best_pointing_error_deg","window_enters_clip_s","window_leaves_clip_s","threshold_clip_s","window_enters_utc","window_leaves_utc","playback_fps_mean","completed"];
 const EVENT_COLS=["seq","type","wall","local","t_ms","clipIndex","clip","clipTime","utc","sighting","az","el","tc","target","position","fps","droppedTotal","presenting","order","version","noseOffsetDeg","screen","phase","category","severity","note","email_ok","email_how","sightings","message","during","pending_pointing","from_clip_time_s","order_seed","order_method","seat_offset","seat_offset_fwd","seat_offset_down","reason","next_position","restart_card","foveation","framebuffer_scale","stage","yaw_trim_deg","upload","mipmaps","audio_volume","audio_paused","audio_drift_s","volume_fixes","volume_at_start","volume","muted","nose_method","nose_fine_tuned_deg","steady","steady_frames","horizon_roll_deg","horizon_pitch_deg","run_start_s","clip_length_s","run_length_s"];
 function fmt(v,u){ return v==null?"n/a":(v+(u||"")); }
 function pressText(p){ const L=[];
@@ -891,7 +900,7 @@ function reportText(rep){ const s=rep.summary; const L=[`N41533 DETECTION STUDY:
   `Started ${s.started}, ended ${s.ended||"not ended"}. Cards presented ${s.cards_presented}, completed ${s.cards_completed}. Order: ${s.order} (seed ${s.order_seed}; ${s.order_method}). Presented: ${s.order_as_presented||s.order}.${s.resumed_after_reload?" Session resumed after a reload or crash "+s.resumed_after_reload+" time(s); see the event log.":""} Viewer seat offset: ${s.seat_offset} (${s.seat_offset_fwd} forward, ${s.seat_offset_down} down, fraction of sphere radius).`,
   `Detection: ${s.hits} hits and ${s.misses} misses on ${s.target_cards_scoreable} scoreable target cards (hit rate ${fmt(s.hit_rate)}); ${s.false_alarm_cards} false-alarm cards and ${s.correct_rejections} correct rejections on ${s.control_cards} control cards (false-alarm rate ${fmt(s.false_alarm_rate)}); d' ${fmt(s.d_prime_loglinear)}, criterion c ${fmt(s.criterion_c)}.`,
   `Time: in the instrument ${fmt(s.minutes_in_instrument," min")} (headset on ${s.headset_on||"n/a"}, off ${s.headset_off||"n/a"}), of which break ${fmt(s.minutes_break," min")}; whole session to lock ${fmt(s.minutes_session_total," min")}.`,
-  `Presses: ${s.presses_total} total, ${s.hit_presses} hits, ${s.false_alarm_presses} false alarms, ${s.unscored_presses} unscored, ${s.presses_withdrawn} withdrawn.`,
+  `Presses: ${s.presses_total} total, ${s.hit_presses} hits, ${s.false_alarm_presses} false alarms, ${s.other_sighting_presses} other sightings (reported as other aircraft, bird or other, outside any drone window), ${s.unscored_presses} unscored, ${s.presses_withdrawn} withdrawn. Reported as: drone ${s.reported_drone}, other aircraft ${s.reported_other_aircraft}, bird ${s.reported_bird}, other ${s.reported_other}, no report ${s.reported_none}.`,
   `Reaction time on hits: mean ${fmt(s.mean_rt_from_enters_s," s")} (median ${fmt(s.median_rt_from_enters_s," s")}) after the drone entered view; mean ${fmt(s.mean_rt_from_first_visible_s," s")} after first likely visible; mean slant range at the hit ${fmt(s.mean_hit_slant_range_ft," ft")}.`,
   `Pointing accuracy on hits: mean ${fmt(s.mean_pointing_error_deg," deg")}, median ${fmt(s.median_pointing_error_deg," deg")}. Nose calibration ${fmt(s.nose_offset_deg," deg")}.`,
   `Participant flow: headset first on ${s.headset_first_on||"n/a"}; consent reading ${fmt(s.consent_reading_min===""?null:s.consent_reading_min," min")}; consent signed on the tablet ${s.consent_signed_local||"not recorded"}${s.consent_declined?" (DECLINED)":""}; briefing ${fmt(s.briefing_min===""?null:s.briefing_min," min")}; takeoff ${s.takeoff||"n/a"}; interview pause ${fmt(s.interview_pause_min===""?null:s.interview_pause_min," min")}; debriefing ${fmt(s.debrief_min===""?null:s.debrief_min," min")}; answers video watched ${s.answers_video_watched}; behind-the-scenes film ${s.fieldwork_film}; The End reached ${s.the_end_reached}; researcher unlocks ${s.researcher_unlocks}; consent in the headset: ${s.consent_in_headset||"n/a"}; takeoff question: ${s.takeoff_question_answer||"not asked"}${s.takeoff_question_s!==""&&s.takeoff_question_s!=null?" ("+s.takeoff_question_s+" s to answer)":""}; closing: ${s.closing||"n/a"}; approach length: ${s.run_length} (start ${s.run_start_s} s into each clip; clip times in this report are measured from the start of the clip file); done outside the headset: ${["consent","briefing","debrief","answers"].filter(k=>s[k+"_outside_headset"]).map(k=>k==="debrief"?"debriefing":(k==="answers"?"answers video":k)).join(", ")||"none"}.`,`${s.notes}`,``,`PARTICIPANT INFORMATION (researcher-entered, under code only)`,infoText(s),``,`ISSUES AND NOTES (${(rep.issues||[]).length})`];
@@ -1195,7 +1204,7 @@ $("consentBack").addEventListener("click",homeContinueUI); $("setupBack").addEve
 $("consentBack").onclick=()=>{ show("s-home"); window.scrollTo(0,0); }; $("setupBack").onclick=()=>show("s-home");
 
 // ---------- three.js / XR ----------
-let yesPanel=null, noPanel=null;
+let yesPanel=null, noPanel=null, classPanels=[];
 let renderer, scene, camera, world, sphere, vtex, faultPanel, replayPanel, promptPanel, reticle, laserL, laserR, xrSession=null;
 let xrOK=false, audOK=false, flat=false, lon=0, lat=0;
 const SPHERE_R=500, FB_SCALE=1.0;           // sphere radius (scene units) and the XR framebuffer scale (1.0 = the headset's native resolution)
@@ -1228,7 +1237,7 @@ function levelSet(roll,pitch,why){ levelRoll=+Math.max(-30,Math.min(30,roll)).to
 function levelUI(){ if($("setRoll")) $("setRoll").value=levelRoll; if($("setPitch")) $("setPitch").value=levelPitch; if($("levelTag")) tag("levelTag","ok","LEVEL",`roll ${levelRoll} deg, pitch ${levelPitch} deg (measured from the takeoff clip, 13 Sept 2026: about 9 and 2.5)`); }
 let panelGroup=null;
 function placePanels(){ if(!panelGroup) return; panelGroup.rotation.y=noseYawRad()+Math.PI;   // rotates the group's -z onto the nose
-  [faultPanel,replayPanel,promptPanel].forEach(m=>{ if(m){ m.updateMatrixWorld(); m.lookAt(0,0,0); } }); }
+  [faultPanel,replayPanel,promptPanel,yesPanel,noPanel,...classPanels].forEach(m=>{ if(m){ m.updateMatrixWorld(); m.lookAt(0,0,0); } }); }
 function setFoveation(){ // fixed foveated rendering blurs the edge of the view, which is exactly where a drone first appears: turn it off
   try{ const layer=xrSession&&xrSession.renderState&&xrSession.renderState.baseLayer; if(layer&&("fixedFoveation" in layer)){ layer.fixedFoveation=0; return layer.fixedFoveation; } }catch(e){ log("foveation not settable: "+e.message); } return null; }
 function buildScene(){
@@ -1256,6 +1265,8 @@ function buildScene(){
   promptPanel=makePanel([" "],"#151c25","#5ac8e8",1.6,0.6); promptPanel.position.set(0,-0.35,-2.6); promptPanel.visible=false; panelGroup.add(promptPanel);
   yesPanel=labelPanel("YES","#12301f","#58c878",0.7,0.34); yesPanel.position.set(-0.45,-0.85,-2.5); yesPanel.visible=false; panelGroup.add(yesPanel);
   noPanel=labelPanel("NO","#2a1a1a","#e4574d",0.7,0.34); noPanel.position.set(0.45,-0.85,-2.5); noPanel.visible=false; panelGroup.add(noPanel);
+  // 2.8.2: after the lock-in, what was it? Four panels in a row below the prompt, on the nose side of the seat.
+  classPanels=SIGHT_CLASSES.map((t,i)=>{ const m=labelPanel(t,i===0?"#12301f":"#1c2733",i===0?"#58c878":"#5ac8e8",0.78,0.3,t.length>6?96:150); m.position.set(-1.35+i*0.9,-0.9,-2.6); m.visible=false; panelGroup.add(m); return m; });
   placePanels();
   reticle=new THREE.Mesh(new THREE.SphereGeometry(1.6,12,12),new THREE.MeshBasicMaterial({color:0x5ac8e8})); reticle.visible=false; scene.add(reticle);
   const lineGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]);
@@ -1269,7 +1280,8 @@ function buildScene(){
   renderer.domElement.addEventListener("pointermove",e=>{ if(!down||!flat) return; lon=down[2]+(down[0]-e.clientX)*0.15; lat=Math.max(-85,Math.min(85,down[3]+(e.clientY-down[1])*0.15)); });
   renderer.domElement.addEventListener("pointerup",e=>{ if(!down) return; const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]); const dt=performance.now()-down[4]; down=null;
     if(flat && moved<6 && dt<600) onSelect({flat:true}); });
-  document.addEventListener("keydown",e=>{ if(!flat) return; if(e.code==="KeyB" && (S.phase==="playing"||S.phase==="awaitingPoint")) noteFault(); if(e.code==="KeyR" && (S.phase==="playing"||S.phase==="awaitingPoint")) replayClip();
+  document.addEventListener("keydown",e=>{ if(!flat) return; if(e.code==="KeyB" && (S.phase==="playing"||S.phase==="awaitingPoint"||S.phase==="awaitingClass")) noteFault();
+    if(S.phase==="awaitingClass"&&/^Digit[1-4]$/.test(e.code)) recordClass(SIGHT_CLASSES[+e.code.slice(5)-1]); if(e.code==="KeyR" && (S.phase==="playing"||S.phase==="awaitingPoint")) replayClip();
     if(!VIEW_PHASES[S.phase]) return;   // desktop preview stand-ins for the controller: arrows = thumbstick, C = grip held, G = point at the nose again
     if(e.code==="ArrowLeft"){ if(S.phase==="calibrated") calNudge(-0.5); else if(S.phase!=="calibrating") viewTrim(1); }
     if(e.code==="ArrowRight"){ if(S.phase==="calibrated") calNudge(0.5); else if(S.phase!=="calibrating") viewTrim(-1); }
@@ -1277,9 +1289,9 @@ function buildScene(){
     if(S.phase==="calibrated"){ if(e.code==="ArrowUp") levelNudge(0.5,0); if(e.code==="ArrowDown") levelNudge(-0.5,0); if(e.code==="PageUp") levelNudge(0,0.5); if(e.code==="PageDown") levelNudge(0,-0.5); } });
   window.addEventListener("resize",()=>{ if(!renderer) return; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); });
 }
-function labelPanel(text, bg, edge, w, h){ const cv=document.createElement("canvas"); cv.width=512; cv.height=Math.round(512*h/w); const cx=cv.getContext("2d");
+function labelPanel(text, bg, edge, w, h, px){ const cv=document.createElement("canvas"); cv.width=512; cv.height=Math.round(512*h/w); const cx=cv.getContext("2d");
   cx.fillStyle=bg; cx.fillRect(0,0,cv.width,cv.height); cx.strokeStyle=edge; cx.lineWidth=16; cx.strokeRect(8,8,cv.width-16,cv.height-16);
-  cx.fillStyle="#ffffff"; cx.textAlign="center"; cx.textBaseline="middle"; cx.font="800 150px Barlow, Arial, sans-serif"; cx.fillText(text,cv.width/2,cv.height/2+6);
+  cx.fillStyle="#ffffff"; cx.textAlign="center"; cx.textBaseline="middle"; cx.font="800 "+(px||150)+"px Barlow, Arial, sans-serif"; cx.fillText(text,cv.width/2,cv.height/2+6);
   return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv)})); }
 function makePanel(lines, bg, edge, w, h){
   const cv=document.createElement("canvas"); cv.width=1024; cv.height=Math.round(1024*h/w); const cx=cv.getContext("2d");
@@ -1302,7 +1314,7 @@ const _dir=new THREE.Vector3(), _pos=new THREE.Vector3(), _ray=new THREE.Raycast
 function controllerRay(ctrl){ ctrl.getWorldPosition(_pos); ctrl.getWorldDirection(_dir); _dir.negate(); return {pos:_pos.clone(),dir:_dir.clone()}; }
 let activeCtrl=null;
 // ---------- controller polling (2.8.0): grip held 1.5 s = put the nose straight ahead; thumbstick left/right = slide the picture ----------
-const VIEW_PHASES={playing:1,awaitingPoint:1,waitingNext:1,takeoff:1,takeoffReady:1,takeoffQuestion:1,takeoffAnswered:1,between:1,calibrating:1,calibrated:1};
+const VIEW_PHASES={playing:1,awaitingPoint:1,awaitingClass:1,waitingNext:1,takeoff:1,takeoffReady:1,takeoffQuestion:1,takeoffAnswered:1,between:1,calibrating:1,calibrated:1};
 let gripSince=null, gripStage=0, stickAt=0, stickAtY=0;
 function pollControls(){ if(!xrSession||!renderer.xr.isPresenting) return; if(!VIEW_PHASES[S.phase]){ gripSince=null; gripStage=0; return; }
   const now=performance.now(); let grip=false, stick=0, stickY=0, btnA=false, btnB=false;
@@ -1361,7 +1373,7 @@ async function enterXR(onReady){
 }
 function onXREnd(){ log("XR session ended"); renderer.domElement.style.display="none"; xrSession=null; reticle.visible=false;
   if(S.idx<0&&(S.phase==="takeoff"||S.phase==="takeoffReady"||S.phase==="takeoffQuestion"||S.phase==="takeoffAnswered"||S.phase==="loading")){ stopOptional(); if(yesPanel){ yesPanel.visible=false; noPanel.visible=false; } vid.pause(); if(clipAudio) clipAudio.pause(); S.interruptedPhase="takeoff"; S.phase="interrupted"; ev("headset_removed",{during:"takeoff"}); showResume("Paused","The headset came off during the takeoff. Press to re-enter; the takeoff plays again from the start."); }
-  else if(S.phase==="playing"||S.phase==="awaitingPoint"){ vid.pause(); if(clipAudio) clipAudio.pause(); S.interruptedPhase=S.phase; S.phase="interrupted"; ev("headset_removed",{during:S.interruptedPhase}); showResume("Paused","The headset came off during an approach. Press to re-enter and continue the same approach."); }
+  else if(S.phase==="playing"||S.phase==="awaitingPoint"||S.phase==="awaitingClass"){ classShow(false); vid.pause(); if(clipAudio) clipAudio.pause(); S.interruptedPhase=S.phase; S.phase="interrupted"; ev("headset_removed",{during:S.interruptedPhase}); showResume("Paused","The headset came off during an approach. Press to re-enter and continue the same approach."); }
   else if(S.phase==="waitingNext"||S.phase==="loading"){ S.interruptedPhase="waitingNext"; S.phase="interrupted"; ev("headset_removed",{during:"between approaches"}); showResume("Paused","The headset came off between approaches. Press to re-enter; the participant then pulls the trigger for the next approach."); }
   else if(S.phase==="calibrating"||S.phase==="calibrated"){ calCancel(); }
 }
@@ -1411,20 +1423,25 @@ function onSelect(e){
   if(S.phase==="takeoffAnswered"){ stopOptional(); ev("takeoff_question_resume",{tc:TAKEOFF}); prompt(null); readyForApproaches(); return; }
   if(S.phase==="takeoff"||S.phase==="takeoffReady"||S.phase==="loading") return;   // nothing is scored during the takeoff or while loading
   if(S.phase==="waitingNext"){ startClip(); return; }
-  if(S.phase==="playing"||S.phase==="awaitingPoint"){
+  if(S.phase==="playing"||S.phase==="awaitingPoint"||S.phase==="awaitingClass"){
     // fault panel hit?
     _ray.set(r.pos,r.dir); if(_ray.intersectObject(faultPanel).length){ noteFault(); return; }
     if(_ray.intersectObject(replayPanel).length){ replayClip(); return; }
+    if(S.phase==="awaitingClass"){ for(let i=0;i<classPanels.length;i++){ if(_ray.intersectObject(classPanels[i]).length){ recordClass(SIGHT_CLASSES[i]); return; } } return; }   // a pull that misses the panels does nothing
     if(S.phase==="playing"){ recordDetection(); } else { recordPointing(r.dir); }
   }
 }
 function recordDetection(){ S.phase="awaitingPoint"; vid.pause(); if(clipAudio) clipAudio.pause(); S.sightingSeq++;
   S.lastDetection=ev("detection",{sighting:S.sightingSeq}); prompt(["FLIGHT PAUSED","Point at where you saw it, then press"]); sayAsync(AUDIO.narr("05_paused_point")); }
+function askClass(){ S.phase="awaitingClass"; classPanels.forEach(m=>m.visible=true); prompt(["WHAT DID YOU SEE?","Point at one and press"]); }
+function classShow(on){ classPanels.forEach(m=>m.visible=!!on); }
+function recordClass(cls){ if(S.phase!=="awaitingClass") return; classShow(false); ev("sighting_class",{sighting:S.sightingSeq, note:cls});
+  prompt(null); S.phase="playing"; sayAsync(AUDIO.narr("06_locked_in")); resumeMedia(); }
 function recordPointing(dir){ const ae=dirToAzEl(dir); ev("lock_in",{sighting:S.sightingSeq, az:ae.az, el:ae.el});
   try{ const rep=buildReport(resultsObject()); const p=rep.sightings[rep.sightings.length-1]; if(p) log(`resolved: ${p.classification}; pointed ${p.point_clock} ${p.point_el_deg} deg; drone ${p.true_clock||"n/a"} ${p.true_elevation_deg==null?"":p.true_elevation_deg+" deg"}; error ${p.pointing_error_total_deg==null?"n/a":p.pointing_error_total_deg+" deg"}; slant ${p.slant_range_ft==null?"n/a":p.slant_range_ft+" ft"}`); }catch(e){ log("resolve error "+e.message); }
-  prompt(null); S.phase="playing"; sayAsync(AUDIO.narr("06_locked_in")); resumeMedia(); }
-function noteFault(){ if(!S.sightingSeq){ return; } ev("fault_flag",{sighting:S.sightingSeq}); prompt(null); S.phase="playing"; sayAsync(AUDIO.narr("07_fault_noted")); resumeMedia(); }
-function replayClip(){ if(S.phase!=="playing"&&S.phase!=="awaitingPoint") return; const pending=S.phase==="awaitingPoint";
+  askClass(); }
+function noteFault(){ if(!S.sightingSeq){ return; } classShow(false); ev("fault_flag",{sighting:S.sightingSeq}); prompt(null); S.phase="playing"; sayAsync(AUDIO.narr("07_fault_noted")); resumeMedia(); }
+function replayClip(){ if(S.phase!=="playing"&&S.phase!=="awaitingPoint"&&S.phase!=="awaitingClass") return; const pending=S.phase!=="playing"; classShow(false);
   ev("replay",{sighting:S.sightingSeq, pending_pointing:pending, from_clip_time_s:+vid.currentTime.toFixed(3)}); prompt(["REPLAYING",""]); setTimeout(()=>prompt(null),2500); sayOptional("replaying");
   vid.pause(); if(clipAudio) clipAudio.pause(); vid.currentTime=runStart(); if(clipAudio) clipAudio.currentTime=runStart(); S.phase="playing"; resumeMedia(); }
 function resumeMedia(){ vid.play().catch(()=>{}); if(clipAudio){ clipAudio.currentTime=vid.currentTime; clipAudio.play().catch(()=>{}); } }
@@ -1521,6 +1538,7 @@ $("resumeBtn").onclick=async()=>{ const interrupted=S.phase==="interrupted"; con
   const ok=await enterXR(()=>{ if(interrupted){
       if(was==="takeoff"){ S.interruptedPhase=null; ev("resumed_takeoff",{during:was}); startTakeoff(); return; }
       if(was==="awaitingPoint"){ S.phase="awaitingPoint"; ev("resumed_same_clip",{during:was}); prompt(["FLIGHT PAUSED","Point at where you saw it, then press"]); }
+      else if(was==="awaitingClass"){ ev("resumed_same_clip",{during:was}); askClass(); }
       else if(was==="waitingNext"){ S.phase="waitingNext"; ev("resumed_between",{during:was}); prompt(["WELCOME BACK","Press the trigger when ready for the next approach"]); sayOptional(S.restartPending?"restart":"welcome_back"); }
       else { S.phase="playing"; ev("resumed_same_clip",{during:was}); resumeMedia(); } S.interruptedPhase=null; }
     else { ev("break_end"); prompt(["WELCOME BACK","Press the trigger when ready for the next approach"]); S.phase="waitingNext"; sayOptional("welcome_back"); } });
@@ -1994,7 +2012,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,viewState:()=>({viewRef,viewTrimDeg,alignPending,texVF,mipOn,volumeFixes,worldYaw:world?world.rotation.y:null,promptLines,lastFlash}),viewTrim,viewRecentre,calAdjust,calNudge,calRedo,rampIn,volumeGuard,texMode,MOTION,steadySet,steadyFrame,steadyState,setSteady:v=>{ steadyOn=!!v; },renderer:()=>renderer,setRenderHook:f=>{ renderHook=f; },levelSet,levelState:()=>({roll:levelRoll,pitch:levelPitch}),runStartFor,tiltUpdate,runLenS:()=>RUN_LEN_S,steadyApplied:()=>steadyApplied,vtex:()=>vtex,
+if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,viewState:()=>({viewRef,viewTrimDeg,alignPending,texVF,mipOn,volumeFixes,worldYaw:world?world.rotation.y:null,promptLines,lastFlash}),viewTrim,viewRecentre,calAdjust,calNudge,calRedo,rampIn,volumeGuard,texMode,MOTION,steadySet,steadyFrame,steadyState,setSteady:v=>{ steadyOn=!!v; },renderer:()=>renderer,setRenderHook:f=>{ renderHook=f; },recordClass,SIGHT_CLASSES,classPanels:()=>classPanels,levelSet,levelState:()=>({roll:levelRoll,pitch:levelPitch}),runStartFor,tiltUpdate,runLenS:()=>RUN_LEN_S,steadyApplied:()=>steadyApplied,vtex:()=>vtex,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();

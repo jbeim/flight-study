@@ -1,5 +1,50 @@
-N41533 DETECTION STUDY APP, VERSION 2.8.1: RESEARCHER QUICK GUIDE
+N41533 DETECTION STUDY APP, VERSION 2.8.2: RESEARCHER QUICK GUIDE
 (14 September 2026)
+
+WHAT CHANGED IN 2.8.2 (the participant says what each sighting was)
+
+- WHY. Recording 3 now asks for the trigger on anything seen outside the
+  aircraft (other traffic, birds, anything that could be a hazard), not just
+  drones (script v4.6, drift log item 31). Every outside sighting therefore
+  earns a press, and the scoring has to know what the participant thought they
+  saw. Until now that depended on what they said aloud and what you wrote down.
+
+- WHAT THE PARTICIPANT SEES. After the pointing press locks a sighting in, four
+  panels appear low in front of the seat, under the prompt: DRONE, OTHER
+  AIRCRAFT, BIRD, OTHER. The prompt reads "WHAT DID YOU SEE? Point at one and
+  press". They lay the laser on one and pull the trigger; the panels vanish, the
+  "locked in" recording plays and the flight continues exactly as before. A pull
+  that misses all four panels does nothing (the flight stays paused), so a
+  sighting cannot be filed by accident. The red mistake panel behind the seat
+  still works at this point, and so does the replay panel.
+
+- WHAT IS LOGGED. One event per sighting, sighting_class, with the sighting
+  number and the word chosen (note). If the headset comes off or the browser is
+  restarted while the panels are up, the session resumes on the same clip with
+  the panels up again (resumed_same_clip, during awaitingClass).
+
+- HOW IT IS SCORED. Nothing changes for a press inside a drone window: it is a
+  HIT whatever the participant called it, and the report keeps the word. A press
+  OUTSIDE a drone window that was reported as OTHER AIRCRAFT, BIRD or OTHER is
+  now an OTHER SIGHTING, not a FALSE ALARM. A press outside a window reported as
+  DRONE, or with no report at all (older session, or the panels were skipped),
+  is a FALSE ALARM as before. A control card counts as FALSE ALARM only if it
+  carries a DRONE or unreported press; other sightings on a control card leave
+  it a CORRECT REJECTION. d-prime and the false-alarm rate use false alarms
+  only, so a bird press no longer counts against the participant.
+
+- WHERE IT SHOWS. Sightings sheet: new column reported_as. Cards sheet: new
+  column other_sightings. Session summary: other_sighting_presses, and one
+  count per word (reported_drone, reported_other_aircraft, reported_bird,
+  reported_other, reported_none). The written report's Presses line names the
+  other-sighting count. Master log: the same summary fields.
+
+- DESKTOP TEST. In the flat (non-VR) view the keys 1, 2, 3 and 4 choose DRONE,
+  OTHER AIRCRAFT, BIRD and OTHER while the panels are up.
+
+- SESSION PACK. Keep writing what they said aloud in the spoken-reports box; the
+  panel word and the spoken word should agree, and where they do not, the
+  spoken word is the participant's own account.
 
 WHAT CHANGED IN 2.8.1 (two-minute runs, earlier takeoff, the camera levelled)
 
