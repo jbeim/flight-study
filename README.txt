@@ -1,7 +1,7 @@
 APP SITE FOLDER: what to upload to GitHub (repository jbeim/flight-study)
 =========================================================================
 Upload EVERYTHING in this folder, keeping the folder structure:
-  index.html                  the study app, version 2.8.0 (2.1 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
+  index.html                  the study app, version 2.8.1 (2.1 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
   data/telemetry.js           aircraft track and drone geometry for all 12 cards (the app scores presses with it)
   data/motion/<clip>.json     picture-steadying tracks, one per clip (2.8.0). TAKEOFF.json is the only one so far;
                               the twelve approach tracks need the proxies described in
@@ -19,7 +19,7 @@ Upload EVERYTHING in this folder, keeping the folder structure:
   audio/clips/TC01_audio.mp3 ... TC12_audio.mp3   the finished clip soundtracks (rebuilt 6 Sep 2026)
   audio/clips/TAKEOFF_audio.mp3   the takeoff soundtrack (made 11 Sep 2026; see Pass-Card Folders\00_Takeoff\00_READ_ME_Takeoff_Clip.txt)
 The video clips (12 approaches and the takeoff) are NOT uploaded; they stay on the headset.
-State of the site on 13 Sep 2026 (evening): app 2.8.0 uploaded. It fixes the engine sound in the
+State of the site on 14 Sep 2026: app 2.8.1 uploaded (every approach is the last 2 minutes of its clip; the takeoff starts 5 s earlier on the runway; the camera's mount tilt, about 9 deg of roll and 2.5 deg of pitch, is levelled so the cockpit and the panels sit square and pointing elevations are measured level). 2.8.0 (13 Sep, evening) It fixes the engine sound in the
 flight (the soundtrack was playing at zero volume inside VR), keeps the cockpit where it was put
 between approaches (grip held = nose straight ahead, thumbstick = slide the picture), calibrates
 the nose by pointing the laser with fine-tuning, uploads video frames once per frame, and adds

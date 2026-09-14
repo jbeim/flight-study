@@ -1,5 +1,42 @@
-N41533 DETECTION STUDY APP, VERSION 2.8.0: RESEARCHER QUICK GUIDE
-(13 September 2026, evening)
+N41533 DETECTION STUDY APP, VERSION 2.8.1: RESEARCHER QUICK GUIDE
+(14 September 2026)
+
+WHAT CHANGED IN 2.8.1 (two-minute runs, earlier takeoff, the camera levelled)
+
+- NO APPROACH RUNS LONGER THAN 2:00. Each approach is now the LAST 120 s of its
+  clip. The start is worked out from the clip's own length (3:00 clips start at
+  61 s, TC12 at 69 s), rounded up to a keyframe so no run ever exceeds two
+  minutes. The drone windows, the deviations and the threshold all lie after
+  139 s, so nothing that is scored is lost. Every clip_start line records the
+  start, the clip length and the run length. (2.8.0 started every clip at 55 s,
+  which made 3:00 clips run 2:05 and TC12 2:13.)
+
+- THE TAKEOFF STARTS FIVE SECONDS EARLIER, at 15 s into the takeoff clip instead
+  of 20 s, so there are about eight seconds of runway before the nose comes up
+  and the bird crosses the windshield (at about 8 s in, from the left). The
+  takeoff now runs 30 s. The consent form's "about 25 seconds" is noted in the
+  drift log for the modification.
+
+- THE CAMERA IS LEVELLED. The X5 sat in its mount rolled about 9 degrees (left
+  side high) and pitched down about 2.5 degrees. Measured from the takeoff clip:
+  on the runway the horizon read about +9 deg out of the left window, +2 deg over
+  the nose and -6 to -9 deg out of the right windows; in the climb +11 to +13
+  left and -6 to -8 right. Until now the whole cockpit leaned that much against
+  your own vertical, so the level prompt panels looked crooked against it and
+  your head wanted to tilt. The picture is now turned back by those amounts, so
+  the cockpit sits square and the panels line up with it. This also matters for
+  the data: the telemetry's elevation angles are gravity-level, and pointing was
+  being measured against the tilted picture, so a point at 3 or 9 o'clock was off
+  by up to 9 degrees in elevation. It is measured level now.
+  The values are in Advanced settings (roll and pitch, with "Back to the measured
+  values") and are written into every session_start line. To fine-tune by eye:
+  during nose calibration, after the pointing pull, push the thumbstick UP or
+  DOWN to roll the picture half a degree at a time until the horizon out of the
+  side windows is level with the panel, and press A or B to pitch it. The panel
+  shows the numbers. Checked by rendering the runway frame: with the measured
+  values the horizon out of the left window and over the nose came to the centre
+  line (a wrong sign had doubled the lean; that is why this was rendered, not
+  reasoned).
 
 WHAT CHANGED IN 2.8.0 (engine sound, the cockpit staying put, nose calibration,
 picture steadying)
@@ -364,8 +401,8 @@ WHAT THE PARTICIPANT SEES
  2 Consent form         optional recording, or the previously-signed button
  3 Briefing room        your recording (11); the button unlocks when it ends;
                         ask your comprehension questions here
- 4 Takeoff              25 s from the end of the roll (bird at about 3 s),
-                        then the YES/NO question
+ 4 Takeoff              30 s: five seconds of runway, the nose comes up, the bird
+                        crosses the windshield at about 8 s; then the YES/NO question
  5 Instructions         your recordings 03 and 04, then "pull the trigger
                         for the first approach". Grip held = nose straight
                         ahead; thumbstick = slide the picture (both logged)

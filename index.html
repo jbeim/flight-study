@@ -291,7 +291,10 @@
   <input type="text" id="setKey" placeholder="paste the access key" autocomplete="off" spellcheck="false">
   <div class="row"><span class="tag wait" id="mailTag">E-MAIL</span><span class="lbl">Automatic e-mail</span><span class="det" id="mailDet"></span></div>
   <p class="note" style="margin:10px 0 2px">Length of each approach (written to every log)</p>
-  <select id="setRun" style="width:100%;box-sizing:border-box;font:600 1.05rem Barlow,sans-serif;padding:12px;border-radius:10px;border:1px solid var(--edge);background:#0e141b;color:var(--text)"><option value="short">About 2 minutes: each approach starts 55 s into its clip (default)</option><option value="full">Full clip: about 3 minutes</option></select>
+  <select id="setRun" style="width:100%;box-sizing:border-box;font:600 1.05rem Barlow,sans-serif;padding:12px;border-radius:10px;border:1px solid var(--edge);background:#0e141b;color:var(--text)"><option value="short">2 minutes: the last 120 s of each clip, never more (default)</option><option value="full">Full clip: about 3 minutes</option></select>
+  <p class="note" style="margin:10px 0 2px">Camera levelling (written to every log). The camera sat in its mount rolled and pitched; these turn the picture back so the cockpit sits square with you and the horizon reads level in the pointing data. Measured from the takeoff clip: roll about 9, pitch about 2.5 (each within about a degree). Fine-tune in VR during calibration (stick up/down = roll, A/B = pitch).</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="note" style="margin:0">Roll (deg)</label><input type="number" id="setRoll" step="0.5" style="width:110px"><label class="note" style="margin:0">Pitch (deg)</label><input type="number" id="setPitch" step="0.5" style="width:110px"><button class="bigbtn quiet" id="levelReset" style="flex:1">Back to the measured values</button></div>
+  <div class="row"><span class="tag ok" id="levelTag">LEVEL</span><span class="lbl">Camera levelling</span><span class="det" id="levelDet"></span></div>
   <p class="note" style="margin:10px 0 2px">Picture steadying (written to every log). Cancels only the fast airframe wobble in the picture, frame by frame, from a track made from each clip; the clip files are not changed and the aircraft's real motion is kept.</p>
   <select id="setSteady" style="width:100%;box-sizing:border-box;font:600 1.05rem Barlow,sans-serif;padding:12px;border-radius:10px;border:1px solid var(--edge);background:#0e141b;color:var(--text)"><option value="off">Off: the picture plays exactly as recorded (default)</option><option value="on">On: the fast wobble is cancelled on every clip that has a track on the site</option></select>
   <div class="row"><span class="tag wait" id="steadyTag">OFF</span><span class="lbl">Steadying tracks</span><span class="det" id="steadyDet"></span></div>
@@ -682,7 +685,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 <script>
 (function(){
 "use strict";
-const VERSION = "study-app 2.8.0 (2026-09-13, engine sound: the volume ramp no longer depends on the page animation clock, which the headset stops in VR, so the soundtrack no longer plays at zero volume; the cockpit stays where it was put between approaches, with grip-hold to recentre and thumbstick to trim; nose calibration by pointing, with fine-tuning; video frames uploaded once per frame instead of once per screen refresh)";
+const VERSION = "study-app 2.8.1 (2026-09-14, every approach is the last 2 minutes of its clip; the takeoff starts 5 s earlier on the runway; the camera's mount tilt is levelled so the cockpit and the panels sit square (roll 9 deg, pitch 2.5 deg, measured from the takeoff clip, adjustable);  engine sound: the volume ramp no longer depends on the page animation clock, which the headset stops in VR, so the soundtrack no longer plays at zero volume; the cockpit stays where it was put between approaches, with grip-hold to recentre and thumbstick to trim; nose calibration by pointing, with fine-tuning; video frames uploaded once per frame instead of once per screen refresh)";
 // How the scenario order is made (recorded in every session's log and master row; see IRB\Randomization_Method_Note.txt)
 const ORDER_METHOD = "complete randomization: Fisher-Yates (Durstenfeld) shuffle of the 12 cards, mulberry32 PRNG seeded by cyrb53(participant code)";
 // Seat offset: where the viewer sits inside the 360 sphere, as a fraction of the sphere radius. 0 = the camera's own position.
@@ -697,8 +700,9 @@ const CLIPS = ["TC01","TC02","TC03","TC04","TC05","TC06","TC07","TC08","TC09","T
 // Clips are recognized by exact file size first (the Quest file picker can hand the browser renamed files), then by name.
 // Sizes of the clips rebuilt on 2026-09-10 (Pass-Card Folders\00_Clip_Checksums_2026-09-10.txt).
 const CLIP_BYTES = {3953625631:"TC01",3728233529:"TC02",3993626609:"TC03",3968533159:"TC04",3903898799:"TC05",3963491080:"TC06",3936537322:"TC07",3901593270:"TC08",3723885573:"TC09",3733553265:"TC10",3737388135:"TC11",3891963843:"TC12",1237744680:"TAKEOFF"};
-const RUN_START_SHORT_S = 55.055;   // "about 2 minutes": every approach starts 55 GOPs (55.055 s) into its clip; the drone windows, deviations and the threshold all lie after 139 s
-const TAKEOFF_FROM_S = 20.020;      // the takeoff segment starts near the end of the roll: the nose comes up at about 22.9 s and a bird crosses the windshield at 22.8-23.3 s
+const RUN_LEN_S = 120, GOP_S = 1.001;   // "2 minutes": every approach is the LAST 120 s of its clip (start = length - 120 s, rounded up to a GOP boundary so no run exceeds 2:00); the drone windows, deviations and the threshold all lie after 139 s, and no clip is shorter than 3:00, so every start falls before 70 s
+function runStartFor(dur){ if(S.run==="full") return 0; if(!isFinite(dur)||dur<=RUN_LEN_S) return 0; return +(Math.ceil((dur-RUN_LEN_S)/GOP_S-1e-6)*GOP_S).toFixed(3); }
+const TAKEOFF_FROM_S = 15.015;      // 2.8.1: five seconds earlier on the runway (was 20.020) so the participant is settled before the bird: the nose comes up at about 22.9 s and the bird crosses the windshield at 22.8-23.3 s, now about 8 s in
 const TAKEOFF_TO_S = 45.045;        // and stops here (25 s in all); then the question
 const TAKEOFF = "TAKEOFF";                 // one-minute familiarization clip (not scored): Pass-Card Folders\00_Takeoff\20260804_TAKEOFF_COCKPIT360_1137Z.mp4
 const READY_NARR = ["03_instructions","04_ready"];   // played in the headset after the takeoff clip, before the first approach
@@ -867,7 +871,7 @@ const ROW_COLS=(()=>{ const base=["participant","date","start_time_local","resea
 function csvOf(rows, cols){ const esc=v=>{ if(v==null) return ""; const s=String(v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }; cols=cols||Object.keys(rows[0]||{}); return [cols.join(",")].concat(rows.map(r=>cols.map(c=>esc(r[c])).join(","))).join("\r\n"); }
 const SIGHT_COLS=["participant","position","card","target","platform","sighting","classification","reason","withdrawn","locked_in","press_clip_time_s","press_utc","press_wall","time_to_threshold_s","rt_from_enters_s","rt_from_first_visible_s","seconds_before_closest_point","point_az_deg","point_el_deg","point_clock","lock_delay_s","true_rel_bearing_deg","true_elevation_deg","true_clock","pointing_error_total_deg","pointing_error_az_deg","pointing_error_el_deg","slant_range_ft","horizontal_sep_ft","vertical_sep_ft","drone_above_below","bearing_ac_to_drone_true_deg","bearing_drone_to_ac_true_deg","drone_lat","drone_lon","drone_alt_ft_msl","drone_dist_from_thr_ft","drone_bearing_from_thr_deg","ac_lat","ac_lon","ac_alt_ft_msl","ac_ht_above_thr_ft","ac_gs_kt","ac_track_deg","ac_dist_from_thr_ft","ac_dist_from_thr_nm","ac_bearing_from_thr_deg","ac_phase","telemetry_extrapolated"];
 const CARD_COLS=["participant","position","card","target","platform","stimulus","modeled_track","scoreable","outcome","presses","replays","withdrawn","hits","false_alarms","unscored_presses","first_hit_rt_from_enters_s","first_hit_rt_from_first_visible_s","first_hit_time_to_threshold_s","first_hit_slant_range_ft","best_pointing_error_deg","window_enters_clip_s","window_leaves_clip_s","threshold_clip_s","window_enters_utc","window_leaves_utc","playback_fps_mean","completed"];
-const EVENT_COLS=["seq","type","wall","local","t_ms","clipIndex","clip","clipTime","utc","sighting","az","el","tc","target","position","fps","droppedTotal","presenting","order","version","noseOffsetDeg","screen","phase","category","severity","note","email_ok","email_how","sightings","message","during","pending_pointing","from_clip_time_s","order_seed","order_method","seat_offset","seat_offset_fwd","seat_offset_down","reason","next_position","restart_card","foveation","framebuffer_scale","stage","yaw_trim_deg","upload","mipmaps","audio_volume","audio_paused","audio_drift_s","volume_fixes","volume_at_start","volume","muted","nose_method","nose_fine_tuned_deg","steady","steady_frames"];
+const EVENT_COLS=["seq","type","wall","local","t_ms","clipIndex","clip","clipTime","utc","sighting","az","el","tc","target","position","fps","droppedTotal","presenting","order","version","noseOffsetDeg","screen","phase","category","severity","note","email_ok","email_how","sightings","message","during","pending_pointing","from_clip_time_s","order_seed","order_method","seat_offset","seat_offset_fwd","seat_offset_down","reason","next_position","restart_card","foveation","framebuffer_scale","stage","yaw_trim_deg","upload","mipmaps","audio_volume","audio_paused","audio_drift_s","volume_fixes","volume_at_start","volume","muted","nose_method","nose_fine_tuned_deg","steady","steady_frames","horizon_roll_deg","horizon_pitch_deg","run_start_s","clip_length_s","run_length_s"];
 function fmt(v,u){ return v==null?"n/a":(v+(u||"")); }
 function pressText(p){ const L=[];
   L.push(`Press ${p.sighting}: ${p.classification}${p.withdrawn?" (withdrawn by participant)":""} at clip time ${p.press_clip_time_s} s (${p.press_utc}); ${p.reason}.`);
@@ -1101,7 +1105,7 @@ function renderOrderReport(){ const el=$("orderReport"); if(!el) return; const c
   if(c.length<2){ el.textContent="Type the participant code to see the order."; return ""; }
   let order=seededOrder(c); const test=$("setTest").checked; if(test) order=order.slice(0,2);
   const rs=runStart(); const fmtT=t=>`${Math.floor(t/60)}:${String(Math.round(t%60)).padStart(2,"0")}`;
-  const lines=[`Participant ${c}${test?" (SHORT TEST RUN: first 2 approaches, files named "+c+"_TEST)":""}`, `Approach length: ${S.run==="full"?"full clip, about 3 minutes":"about 2 minutes (each clip starts at "+fmtT(rs)+")"}`, ``,
+  const lines=[`Participant ${c}${test?" (SHORT TEST RUN: first 2 approaches, files named "+c+"_TEST)":""}`, `Approach length: ${S.run==="full"?"full clip, about 3 minutes":"2 minutes: the last 120 s of each clip (the start is worked out from each clip's own length, never more than 2:00)"}`, ``,
     `Takeoff  ${fmtT(TAKEOFF_FROM_S)} to ${fmtT(TAKEOFF_TO_S)} of the takeoff clip (about ${Math.round(TAKEOFF_TO_S-TAKEOFF_FROM_S)} s, includes the bird), then the question "Did you notice anything unusual?"  file: ${S.files[TAKEOFF]?S.files[TAKEOFF].name+(S.match[TAKEOFF]==="exact size"?"  (matched by its exact size)":"  (*** WRONG VERSION: matched by file name only ***)"):"NOT LOADED"}`];
   order.forEach((tc,i)=>{ const f=S.files[tc]; const mm=f?(S.match[tc]==="exact size"?"  (matched by its exact size)":"  (*** WRONG VERSION: matched by file name only ***)"):""; lines.push(`${String(i+1).padStart(2," ")}. ${tc}  ${f?"file: "+f.name:"NOT LOADED"}${mm}${(!test&&i+1===BREAK_AFTER)?"   -> break after this one":""}`); });
   lines.push(``,`Order method: ${ORDER_METHOD}; seed ${orderSeed(c)}.`); el.textContent=lines.join("\n"); return lines.join("\r\n"); }
@@ -1177,7 +1181,7 @@ const RESET_ALL_TEXT="Full reset: erase everything and start with a blank headse
 $("resetAll").onclick=()=>resetArm($("resetAll"),"Press again to erase everything permanently",RESET_ALL_TEXT,async()=>{
   let n=0; for(const k of sessionKeys()){ eraseSessionKey(k,"full reset"); n++; }
   for(const k of archiveKeys()){ eraseSessionKey(k,"full reset"); n++; }
-  for(const k of ["study_ledger","study_locked","study_last_report","study_settings","study_site","study_seat","study_run","study_mip","study_steady","station_forms","noseOffsetDeg",CAL_INFO_KEY]){ try{ if(localStorage.getItem(k)!==null){ localStorage.removeItem(k); n++; } }catch(e){} }
+  for(const k of ["study_ledger","study_locked","study_last_report","study_settings","study_site","study_seat","study_run","study_mip","study_steady","study_level","station_forms","noseOffsetDeg",CAL_INFO_KEY]){ try{ if(localStorage.getItem(k)!==null){ localStorage.removeItem(k); n++; } }catch(e){} }
   const forgot=await forgetClipFolder(); if(forgot) n++;
   S.noseOffset=null; S.seat="seat"; S.run="short"; S.info={}; S.events=[]; S.code=""; S.order=[]; S.files={}; S.match={}; S.idx=-1; S.phase="setup"; S.orderSeed=null; REP=null;
   try{ $("setSeat").value="seat"; $("setRun").value="short"; $("pcode").value=""; $("setTest").checked=false; tag("calTag","wait","NOT SET","the nose calibration was erased"); }catch(e){}
@@ -1205,6 +1209,23 @@ function noseDir(){ const y=noseYawRad(); return new THREE.Vector3(Math.sin(y),0
 function applySeat(){ if(!sphere) return; const o=SEAT_OFFSETS[S.seat]||SEAT_OFFSETS.camera; const n=noseDir();
   // moving the eye toward the nose = moving the sphere the other way; eye down = sphere up
   sphere.position.set(-o.fwd*SPHERE_R*n.x, o.down*SPHERE_R, -o.fwd*SPHERE_R*n.z); }
+// ---------- levelling the camera (2.8.1) ----------
+// The X5 sat in its mount rolled about 9 deg (left side high) and pitched down about 2.5 deg, measured on the takeoff clip: on the
+// runway frame the horizon read about +9 deg out of the left window, +2 deg over the nose and -6 to -9 deg out of the right windows;
+// in the climb (three frames) +11 to +13 left and -6 to -8 right. Uncertainty about 1 deg; fine-tuned in VR during calibration. With no correction the whole cockpit leans 8.5 deg against the participant's own vertical, the level prompt
+// panels look crooked against it, and every pointing elevation at the sides is off by up to 8.5 deg against the telemetry, which is
+// gravity-level. The sphere is turned by the opposite amounts, so the cockpit sits square and pointing is measured level.
+let levelRoll=9.0, levelPitch=2.5;
+try{ const L=JSON.parse(localStorage.getItem("study_level")||"null"); if(L&&isFinite(L.roll)&&isFinite(L.pitch)){ levelRoll=+L.roll; levelPitch=+L.pitch; } }catch(e){}
+const _qTilt=new THREE.Quaternion(), _qSteady=new THREE.Quaternion(), _qTmp=new THREE.Quaternion();
+function tiltUpdate(){ const n=noseDir(); const lat=new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),n).normalize();
+  // the numbers are the camera's measured tilt (roll: left side high; pitch: camera pointing down); the sphere is turned the opposite way.
+  // Signs were checked by rendering the runway frame: with 8.5 / 2.5 the horizon out of both side windows and over the nose comes to the centre line.
+  _qTilt.setFromAxisAngle(n,THREE.MathUtils.degToRad(-levelRoll)).multiply(_qTmp.setFromAxisAngle(lat,THREE.MathUtils.degToRad(-levelPitch))); sphereApply(); }
+function sphereApply(){ if(!sphere) return; sphere.quaternion.copy(_qTilt).multiply(_qSteady); }
+function levelSet(roll,pitch,why){ levelRoll=+Math.max(-30,Math.min(30,roll)).toFixed(1); levelPitch=+Math.max(-30,Math.min(30,pitch)).toFixed(1);
+  try{ localStorage.setItem("study_level",JSON.stringify({roll:levelRoll,pitch:levelPitch,when:new Date().toISOString()})); }catch(e){} tiltUpdate(); levelUI(); if(why) log("camera levelling set to roll "+levelRoll+", pitch "+levelPitch+" ("+why+")"); }
+function levelUI(){ if($("setRoll")) $("setRoll").value=levelRoll; if($("setPitch")) $("setPitch").value=levelPitch; if($("levelTag")) tag("levelTag","ok","LEVEL",`roll ${levelRoll} deg, pitch ${levelPitch} deg (measured from the takeoff clip, 13 Sept 2026: about 9 and 2.5)`); }
 let panelGroup=null;
 function placePanels(){ if(!panelGroup) return; panelGroup.rotation.y=noseYawRad()+Math.PI;   // rotates the group's -z onto the nose
   [faultPanel,replayPanel,promptPanel].forEach(m=>{ if(m){ m.updateMatrixWorld(); m.lookAt(0,0,0); } }); }
@@ -1223,7 +1244,7 @@ function buildScene(){
   world=new THREE.Group(); scene.add(world);
   const geo=new THREE.SphereGeometry(500,96,64); geo.scale(-1,1,1);
   vtex=new THREE.VideoTexture(vid); vtex.anisotropy=renderer.capabilities.getMaxAnisotropy(); texSetup(); mipApply();
-  sphere=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:vtex})); world.add(sphere); applySeat();
+  sphere=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({map:vtex})); world.add(sphere); applySeat(); tiltUpdate();
   // Two service panels sit directly behind the seat, side by side, a little below eye level (168 and 192 deg from the nose,
   // 19 deg below the horizon, 3 m away): out of every window sightline, found only by turning right round.
   // Red = pressed by mistake, green = replay this approach. PANEL_POS is the single place these numbers live.
@@ -1252,7 +1273,8 @@ function buildScene(){
     if(!VIEW_PHASES[S.phase]) return;   // desktop preview stand-ins for the controller: arrows = thumbstick, C = grip held, G = point at the nose again
     if(e.code==="ArrowLeft"){ if(S.phase==="calibrated") calNudge(-0.5); else if(S.phase!=="calibrating") viewTrim(1); }
     if(e.code==="ArrowRight"){ if(S.phase==="calibrated") calNudge(0.5); else if(S.phase!=="calibrating") viewTrim(-1); }
-    if(e.code==="KeyC" && S.phase!=="calibrating" && S.phase!=="calibrated") viewRecentre(); if(e.code==="KeyG" && S.phase==="calibrated") calRedo(); });
+    if(e.code==="KeyC" && S.phase!=="calibrating" && S.phase!=="calibrated") viewRecentre(); if(e.code==="KeyG" && S.phase==="calibrated") calRedo();
+    if(S.phase==="calibrated"){ if(e.code==="ArrowUp") levelNudge(0.5,0); if(e.code==="ArrowDown") levelNudge(-0.5,0); if(e.code==="PageUp") levelNudge(0,0.5); if(e.code==="PageDown") levelNudge(0,-0.5); } });
   window.addEventListener("resize",()=>{ if(!renderer) return; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); });
 }
 function labelPanel(text, bg, edge, w, h){ const cv=document.createElement("canvas"); cv.width=512; cv.height=Math.round(512*h/w); const cx=cv.getContext("2d");
@@ -1281,11 +1303,14 @@ function controllerRay(ctrl){ ctrl.getWorldPosition(_pos); ctrl.getWorldDirectio
 let activeCtrl=null;
 // ---------- controller polling (2.8.0): grip held 1.5 s = put the nose straight ahead; thumbstick left/right = slide the picture ----------
 const VIEW_PHASES={playing:1,awaitingPoint:1,waitingNext:1,takeoff:1,takeoffReady:1,takeoffQuestion:1,takeoffAnswered:1,between:1,calibrating:1,calibrated:1};
-let gripSince=null, gripStage=0, stickAt=0;
+let gripSince=null, gripStage=0, stickAt=0, stickAtY=0;
 function pollControls(){ if(!xrSession||!renderer.xr.isPresenting) return; if(!VIEW_PHASES[S.phase]){ gripSince=null; gripStage=0; return; }
-  const now=performance.now(); let grip=false, stick=0;
+  const now=performance.now(); let grip=false, stick=0, stickY=0, btnA=false, btnB=false;
   for(const src of xrSession.inputSources){ const g=src.gamepad; if(!g) continue; if(g.buttons&&g.buttons[1]&&g.buttons[1].pressed) grip=true;
-    const ax=g.axes&&g.axes.length>=4?g.axes[2]:((g.axes&&g.axes[0])||0); if(Math.abs(ax)>Math.abs(stick)) stick=ax; }
+    const ax=g.axes&&g.axes.length>=4?g.axes[2]:((g.axes&&g.axes[0])||0); if(Math.abs(ax)>Math.abs(stick)) stick=ax;
+    const ay=g.axes&&g.axes.length>=4?g.axes[3]:((g.axes&&g.axes[1])||0); if(Math.abs(ay)>Math.abs(stickY)) stickY=ay;
+    if(g.buttons&&g.buttons[4]&&g.buttons[4].pressed) btnA=true; if(g.buttons&&g.buttons[5]&&g.buttons[5].pressed) btnB=true; }
+  if(S.phase==="calibrated"){ if(Math.abs(stickY)>0.6||btnA||btnB){ if(now-stickAtY>=160){ stickAtY=now; if(Math.abs(stickY)>0.6) levelNudge(stickY<0?0.5:-0.5,0); else levelNudge(0,btnA?0.5:-0.5); } } else stickAtY=0; }
   if(grip){ if(gripSince===null){ gripSince=now; gripStage=0; }
     else if(gripStage===0&&now-gripSince>=350){ gripStage=1; flash(["KEEP HOLDING THE GRIP",S.phase==="calibrated"||S.phase==="calibrating"?"to point at the nose again":"to put the nose straight ahead"],1300); }
     else if(gripStage===1&&now-gripSince>=1500){ gripStage=2; if(S.phase==="calibrated") calRedo(); else if(S.phase!=="calibrating") viewRecentre(); } }
@@ -1355,19 +1380,20 @@ $("calBtn").onclick=async()=>{
   if(!S.files[CLIPS[0]]) return; S.phase="calibrating"; calPrev=S.noseOffset; vid.src=URL.createObjectURL(S.files[CLIPS[0]]); vid.currentTime=5; vid.pause();
   await enterXR(()=>{ steadySet(null); texTouch(); prompt(["POINT THE LASER AT THE NOSE","(the propeller spinner)","then pull the trigger"]); });
 };
-function calPrompt(){ prompt(["NOSE SET AT "+S.noseOffset+" DEG","The spinner should sit straight below this panel.","Thumbstick: slide it. Grip: start again. Trigger: keep it."]); }
+function calPrompt(){ prompt(["NOSE "+S.noseOffset+" DEG   LEVEL roll "+levelRoll+" pitch "+levelPitch,"Spinner under this panel: stick left/right. Horizon level: stick up/down (roll), A/B (pitch).","Grip: point again. Trigger: keep it."]); }
 function calibrationPoint(dir,method){ S.noseOffset=norm180(THREE.MathUtils.radToDeg(yawInSphere(dir))); calMethod=method; calTuned=0;
-  S.phase="calibrated"; alignNoseToView(); placePanels(); applySeat(); calPrompt(); log("nose pointed at "+S.noseOffset+" deg ("+method+"); fine-tune or confirm"); }
-function calNudge(d){ if(S.phase!=="calibrated") return; S.noseOffset=norm180(S.noseOffset+d); calTuned=+(calTuned+d).toFixed(1); viewApply(); placePanels(); applySeat(); calPrompt(); }
+  S.phase="calibrated"; alignNoseToView(); placePanels(); applySeat(); tiltUpdate(); calPrompt(); log("nose pointed at "+S.noseOffset+" deg ("+method+"); fine-tune or confirm"); }
+function calNudge(d){ if(S.phase!=="calibrated") return; S.noseOffset=norm180(S.noseOffset+d); calTuned=+(calTuned+d).toFixed(1); viewApply(); placePanels(); applySeat(); tiltUpdate(); calPrompt(); }
+function levelNudge(dr,dp){ if(S.phase!=="calibrated") return; levelSet(levelRoll+dr,levelPitch+dp,"fine-tuned in VR"); calPrompt(); }
 function calRedo(){ if(S.phase!=="calibrated") return; S.phase="calibrating"; prompt(["POINT THE LASER AT THE NOSE","(the propeller spinner)","then pull the trigger"]); log("calibration started again"); }
-function calCancel(){ S.noseOffset=calPrev; S.phase="setup"; prompt(null); placePanels(); applySeat(); log("calibration cancelled: the previous value was kept"); readyCheck(); }
+function calCancel(){ S.noseOffset=calPrev; S.phase="setup"; prompt(null); placePanels(); applySeat(); tiltUpdate(); log("calibration cancelled: the previous value was kept"); readyCheck(); }
 function finishCalibration(){ if(S.phase!=="calibrated") return;
   try{ localStorage.setItem("noseOffsetDeg",String(S.noseOffset)); localStorage.setItem(CAL_INFO_KEY,JSON.stringify({method:calMethod, fine_tuned_deg:calTuned, when:new Date().toISOString()})); }catch(e){}
-  tag("calTag","ok","SET",`nose at ${S.noseOffset} deg in the video sphere (pointed with the ${calMethod}, fine-tuned ${calTuned} deg)`); prompt(null);
+  tag("calTag","ok","SET",`nose at ${S.noseOffset} deg in the video sphere (pointed with the ${calMethod}, fine-tuned ${calTuned} deg); camera levelled roll ${levelRoll}, pitch ${levelPitch}`); prompt(null);
   log("calibrated nose offset "+S.noseOffset+" ("+calMethod+", fine-tuned "+calTuned+" deg)"); placePanels(); applySeat(); calFineUI();
   setTimeout(()=>{ if(xrSession) xrSession.end(); else if(flat){ renderer.domElement.style.display="none"; } S.phase="setup"; readyCheck(); },800); }
 // setup-screen nudges for a remembered calibration (after a session where the log's yaw trim showed the nose a little off)
-function calAdjust(d){ if(S.noseOffset===null) return; S.noseOffset=norm180(S.noseOffset+d);
+function calAdjust(d){ if(S.noseOffset===null) return; S.noseOffset=norm180(S.noseOffset+d); tiltUpdate();
   try{ localStorage.setItem("noseOffsetDeg",String(S.noseOffset)); const i=calInfo()||{}; i.fine_tuned_deg=+((i.fine_tuned_deg||0)+d).toFixed(1); i.adjusted=new Date().toISOString(); localStorage.setItem(CAL_INFO_KEY,JSON.stringify(i)); }catch(e){}
   tag("calTag","ok","SET",`nose at ${S.noseOffset} deg in the video sphere (nudged ${d>0?"+":""}${d} deg on the setup screen)`); log("nose calibration nudged by "+d+" deg to "+S.noseOffset); placePanels(); applySeat(); calFineUI(); }
 function calFineUI(){ const on=S.noseOffset!==null; ["calL5","calL1","calR1","calR5"].forEach(id=>{ const b=$(id); if(b) b.disabled=!on; });
@@ -1425,10 +1451,10 @@ async function startClip(){
   const tc=S.order[S.idx]; S.phase="loading"; prompt(["LOADING",tc]); log("loading "+tc);
   const okLoad=await loadClip(tc);
   if(!okLoad){ ev("clip_error",{tc, message:"clip did not open"}); prompt(["CLIP DID NOT OPEN",tc+": press the trigger to go on to the next approach"]); S.phase="waitingNext"; return; }
-  await seekVid(runStart());
+  S.runStartNow=runStartFor(vid.duration); await seekVid(S.runStartNow);
   clipAudio.pause(); clipAudio.src=sndSrc(tc); clipAudio.preservesPitch=false; clipAudio.load();
   if(alignPending){ alignNoseToView(); alignPending=false; } texTouch(); placePanels(); applySeat(); prompt(null); S.sightingSeq=0;
-  steadySet(tc); S.phase="playing"; S.clipStartWall=performance.now(); ev("clip_start",{tc, target:TARGET[tc], position:S.idx+1, steady:steadyState(tc)});
+  steadySet(tc); S.phase="playing"; S.clipStartWall=performance.now(); ev("clip_start",{tc, target:TARGET[tc], position:S.idx+1, steady:steadyState(tc), run_start_s:+S.runStartNow.toFixed(3), clip_length_s:+vid.duration.toFixed(3), run_length_s:+(vid.duration-S.runStartNow).toFixed(3)});
   if(S.restartPending===tc){ const prev=S.events.filter(e=>e.clip===tc&&e.type!=="clip_start"&&e.clipTime!=null); const from=prev.length?prev[prev.length-1].clipTime:null;
     S.sightingSeq=S.events.filter(e=>e.type==="detection"&&e.clip===tc).length; ev("replay",{reason:"approach restarted from its beginning after a reload or crash", from_clip_time_s:from, sighting:S.sightingSeq, pending_pointing:false}); S.restartPending=null; }
   vid.play().then(()=>{ clipAudio.currentTime=vid.currentTime; rampIn(clipAudio);
@@ -1460,8 +1486,8 @@ let texVF=false, vfLast=0, vfT=0;
 // pointing frame moves by less than a fifth of a degree, far inside the pointing error.
 const MOTION={}; let steadyOn=false; try{ steadyOn=localStorage.getItem("study_steady")==="on"; }catch(e){}
 let steadyTrack=null, steadyApplied=0, steadyClip=null;
-function steadySet(tc){ steadyClip=tc; steadyTrack=(steadyOn&&tc&&MOTION[tc])?MOTION[tc]:null; steadyApplied=0; if(sphere) sphere.quaternion.set(0,0,0,1); }
-function steadyFrame(mediaTime){ if(!steadyTrack||!sphere||!texVF) return; const i=Math.round((mediaTime-(steadyTrack.t0||0))*steadyTrack.fps); const q=steadyTrack.q[i]; if(!q) return; sphere.quaternion.set(q[0],q[1],q[2],q[3]); steadyApplied++; }
+function steadySet(tc){ steadyClip=tc; steadyTrack=(steadyOn&&tc&&MOTION[tc])?MOTION[tc]:null; steadyApplied=0; _qSteady.set(0,0,0,1); sphereApply(); }
+function steadyFrame(mediaTime){ if(!steadyTrack||!sphere||!texVF) return; const i=Math.round((mediaTime-(steadyTrack.t0||0))*steadyTrack.fps); const q=steadyTrack.q[i]; if(!q) return; _qSteady.set(q[0],q[1],q[2],q[3]); sphereApply(); steadyApplied++; }
 function steadyState(tc){ return !steadyOn?"off":(MOTION[tc]?"on":"on, but no track for this clip on the site"); }
 async function loadMotion(){ for(const k of [...CLIPS,TAKEOFF]){ if(MOTION[k]) continue; try{ const r=await fetch("data/motion/"+k+".json"); if(!r.ok) continue; const j=await r.json(); if(j&&j.q&&j.fps) MOTION[k]=j; }catch(e){} } steadyUI(); }
 function steadyUI(){ const n=Object.keys(MOTION).length, all=CLIPS.length+1; if(!$("steadyTag")) return;
@@ -1474,7 +1500,7 @@ function texSetup(){ if(!vtex||!("requestVideoFrameCallback" in HTMLVideoElement
 function texTouch(){ if(vtex) vtex.needsUpdate=true; }   // after a seek while paused, so the first picture is the right one
 function texMode(){ return texVF?"once per video frame":"every screen refresh"; }
 setInterval(()=>{ if(!(S.phase==="playing"||S.phase==="takeoff")||vid.paused) { fpsCount=0; fpsLast=performance.now(); return; }
-  if(texVF && performance.now()-vfLast>900 && vid.currentTime-vfT>0.6){ texVF=false; texTouch(); if(sphere) sphere.quaternion.set(0,0,0,1); ev("texture_upload_fallback",{note:"no video frame callback for 0.9 s while the video ran; uploads now happen every screen refresh and the picture cannot be steadied"}); }
+  if(texVF && performance.now()-vfLast>900 && vid.currentTime-vfT>0.6){ texVF=false; texTouch(); _qSteady.set(0,0,0,1); sphereApply(); ev("texture_upload_fallback",{note:"no video frame callback for 0.9 s while the video ran; uploads now happen every screen refresh and the picture cannot be steadied"}); }
   const dt=(performance.now()-fpsLast)/1000; if(dt<9.5) return; const fps=fpsCount/dt; fpsCount=0; fpsLast=performance.now();
   const q=vid.getVideoPlaybackQuality?vid.getVideoPlaybackQuality():null; const a=clipAudio;
   ev("playback_rate",{fps:+fps.toFixed(1), droppedTotal:q?q.droppedVideoFrames:null, presenting:renderer&&renderer.xr.isPresenting, upload:texMode(),
@@ -1523,7 +1549,7 @@ $("beginBtn").onclick=async()=>{ primeAudio("Ready"); S.code=$("pcode").value.tr
   S.started=new Date().toISOString(); S.events=keep.map((e,i)=>Object.assign({},e,{seq:i+1})); S.idx=-1; S.sightingSeq=0; S.answersLogged=false; fieldLogged=false; S.interruptedPhase=null;
   if(!S.info||!S.info.date) S.info=Object.assign({},INFO_BLANK,S.info||{},{code:S.code,date:localStamp().slice(0,10),start_time_local:localStamp().slice(11,16)}); else S.info.code=S.code; infoUI();
   S.orderSeed=orderSeed($("pcode").value); S.restartPending=null;
-  const ci=calInfo()||{}; ev("session_start",{version:VERSION, order:S.order.join(" "), order_seed:S.orderSeed, order_method:ORDER_METHOD, noseOffsetDeg:S.noseOffset, nose_method:ci.method||"", nose_fine_tuned_deg:ci.fine_tuned_deg==null?"":ci.fine_tuned_deg, seat_offset:S.seat, seat_offset_fwd:SEAT_OFFSETS[S.seat].fwd, seat_offset_down:SEAT_OFFSETS[S.seat].down, testMode:S.testMode, run_length:S.run==="full"?"full clip (about 3 min)":"about 2 min", run_start_s:runStart(), takeoff_from_s:TAKEOFF_FROM_S, takeoff_to_s:TAKEOFF_TO_S}); $("beginBtn").disabled=true; S.phase="participant"; READERS.consent.reset(); READERS.briefing.reset(); READERS.debrief.reset(); answersReset(); $("psDeclined").dataset.confirm=""; $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-welcome"); };
+  const ci=calInfo()||{}; ev("session_start",{version:VERSION, order:S.order.join(" "), order_seed:S.orderSeed, order_method:ORDER_METHOD, noseOffsetDeg:S.noseOffset, nose_method:ci.method||"", nose_fine_tuned_deg:ci.fine_tuned_deg==null?"":ci.fine_tuned_deg, horizon_roll_deg:levelRoll, horizon_pitch_deg:levelPitch, seat_offset:S.seat, seat_offset_fwd:SEAT_OFFSETS[S.seat].fwd, seat_offset_down:SEAT_OFFSETS[S.seat].down, testMode:S.testMode, run_length:S.run==="full"?"full clip (about 3 min)":("the last "+RUN_LEN_S+" s of each clip"), run_start_s:S.run==="full"?0:("last "+RUN_LEN_S+" s of each clip"), run_length_s:S.run==="full"?"":RUN_LEN_S, takeoff_from_s:TAKEOFF_FROM_S, takeoff_to_s:TAKEOFF_TO_S}); $("beginBtn").disabled=true; S.phase="participant"; READERS.consent.reset(); READERS.briefing.reset(); READERS.debrief.reset(); answersReset(); $("psDeclined").dataset.confirm=""; $("pcDecline").dataset.confirm=""; $("pcDecline").textContent="I do not wish to take part"; show("p-welcome"); };
 async function runIntro(){ const names=["Welcome and safety","Flight briefing","How to respond","Ready"]; $("enterBtn").style.display="none";
   for(let i=0;i<NARR.length;i++){ $("introStep").textContent=`${i+1} of 4`; $("introName").textContent=names[i]; await playSound(AUDIO.narr(NARR[i])); }
   $("introText").textContent="When you are ready, press the button below."; $("enterBtn").style.display="block"; }
@@ -1667,7 +1693,7 @@ function xlsxBlob(rep){ if(!window.XLSX) return null; const wb=XLSX.utils.book_n
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rep.events.map(e=>{ const o={}; EVENT_COLS.forEach(k=>o[k]=e[k]===undefined?"":e[k]); return o; }), {header:EVENT_COLS}), "Event log");
   return new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}); }
 // ---------- reset this headset (researcher only) ----------
-const RESET_FIXED = ["study_ledger","study_locked","study_settings","study_site","study_last_report","study_seat","study_run","study_mip","study_steady","noseCalInfo","study_erasures"];
+const RESET_FIXED = ["study_ledger","study_locked","study_settings","study_site","study_last_report","study_seat","study_run","study_mip","study_steady","study_level","noseCalInfo","study_erasures"];
 function lsKeys(){ const out=[]; try{ for(let i=0;i<localStorage.length;i++) out.push(localStorage.key(i)); }catch(e){} return out; }
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function isSessionKey(k){ if(!/^study_/.test(k)) return false; if(/^study_archive_/.test(k)) return false; if(RESET_FIXED.includes(k)) return false;
@@ -1854,6 +1880,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closeIssue(); clo
 // that shimmer at the cost of extra work per frame. Off by default; the log's playback_rate lines show the effect either way.
 let mipOn=false; try{ mipOn=localStorage.getItem("study_mip")==="on"; }catch(e){}
 function mipApply(){ if(!vtex) return; vtex.generateMipmaps=mipOn; vtex.minFilter=mipOn?THREE.LinearMipmapLinearFilter:THREE.LinearFilter; vtex.needsUpdate=true; }
+if($("setRoll")){ levelUI(); const rd=()=>levelSet(parseFloat($("setRoll").value),parseFloat($("setPitch").value),"setup screen"); $("setRoll").onchange=rd; $("setPitch").onchange=rd; $("levelReset").onclick=()=>levelSet(9.0,2.5,"measured values restored"); }
 if($("setSteady")){ $("setSteady").value=steadyOn?"on":"off"; $("setSteady").onchange=()=>{ steadyOn=$("setSteady").value==="on"; try{ localStorage.setItem("study_steady",steadyOn?"on":"off"); }catch(e){} steadyUI(); log("picture steadying "+(steadyOn?"on":"off")); }; steadyUI(); }
 if($("setMip")){ $("setMip").value=mipOn?"on":"off"; $("setMip").onchange=()=>{ mipOn=$("setMip").value==="on"; try{ localStorage.setItem("study_mip",mipOn?"on":"off"); }catch(e){} mipApply(); log("fine detail set to "+(mipOn?"smoothed (mipmaps)":"sharp (no mipmaps)")); }; }
 const SET={ email:"jbeim@yahoo.com", key:"" };
@@ -1863,7 +1890,7 @@ function seatUI(){ const sel=$("setSeat"); if(!sel.options.length){ Object.keys(
 $("setSeat").onchange=()=>{ S.seat=$("setSeat").value in SEAT_OFFSETS?$("setSeat").value:"seat"; try{ localStorage.setItem("study_seat",S.seat); }catch(e){} seatUI(); log("seat offset set to "+S.seat); };
 try{ const k=localStorage.getItem("study_seat"); if(k&&SEAT_OFFSETS[k]) S.seat=k; }catch(e){}
 S.run="short"; try{ const k=localStorage.getItem("study_run"); if(k==="full"||k==="short") S.run=k; }catch(e){}
-function runStart(){ return S.run==="full"?0:RUN_START_SHORT_S; }
+function runStart(){ return S.run==="full"?0:(S.runStartNow!=null?S.runStartNow:runStartFor(vid&&isFinite(vid.duration)?vid.duration:NaN)); }
 $("setRun").value=S.run; $("setRun").onchange=()=>{ S.run=$("setRun").value==="full"?"full":"short"; try{ localStorage.setItem("study_run",S.run); }catch(e){} log("approach length set to "+S.run); renderOrderReport(); };
 function settingsUI(){ $("setEmail").value=SET.email; $("setKey").value=SET.key; seatUI(); if(SET.key) tag("mailTag","ok","ON",`reports will be e-mailed to ${SET.email} at lock`); else tag("mailTag","warn","OFF","no access key: reports are saved as files only (a mail draft opens as a fallback)"); }
 function settingsSave(){ SET.email=$("setEmail").value.trim()||"jbeim@yahoo.com"; SET.key=$("setKey").value.trim(); try{ localStorage.setItem("study_settings",JSON.stringify(SET)); }catch(e){} settingsUI(); }
@@ -1967,7 +1994,7 @@ try{ const s=localStorage.getItem("noseOffsetDeg"); if(s!==null){ S.noseOffset=p
 if(navigator.xr&&navigator.xr.isSessionSupported){ navigator.xr.isSessionSupported("immersive-vr").then(ok=>{ xrOK=ok; tag("xrTag",ok?"ok":"warn",ok?"YES":"DESKTOP",ok?"immersive-vr supported":"no VR here: desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); readyCheck(); }).catch(()=>{ tag("xrTag","warn","DESKTOP","desktop preview mode"); readyCheck(); }); }
 else { tag("xrTag","warn","DESKTOP","no VR here: the app runs in desktop preview mode (drag to look, click = trigger, B = fault, R = replay)"); }
 checkAudio().then(ok=>{ audOK=ok; readyCheck(); });
-if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,viewState:()=>({viewRef,viewTrimDeg,alignPending,texVF,mipOn,volumeFixes,worldYaw:world?world.rotation.y:null,promptLines,lastFlash}),viewTrim,viewRecentre,calAdjust,calNudge,calRedo,rampIn,volumeGuard,texMode,MOTION,steadySet,steadyFrame,steadyState,setSteady:v=>{ steadyOn=!!v; },renderer:()=>renderer,setRenderHook:f=>{ renderHook=f; },steadyApplied:()=>steadyApplied,vtex:()=>vtex,
+if(location.hash==="#debug"){ window.__debug={ SND, nameOnly, expectedBytes, CLIP_BYTES, sessionKeys, archiveKeys, erasureLog, resetRender, sessionSafety, eraseSessionKey, backupEverything, atRiskCount, resetAllGate, lastBackup, sessionSummaryRow, allKeys, loadSoundtracks, soundUI, orderCheck, primeAudio, audioPrimedState:()=>audioPrimed, folderUI, dirSave, dirLoad, loadFromDir, interviewGate, interviewDone, OPTIONAL_NARR, optionalOK,S,resultsObject,renderResults,buildReport,ev,show,onXREnd,onSelect,participantRow,reportText,reportHTML,csvOf,ROW_COLS,ISSUE_COLS,panels:()=>({faultPanel,replayPanel}),progressOf,interruptedSessions,restoreStored,stageOf,READERS,stationForms,addPicked,renderClipList,answerTakeoff,runStart,renderOrderReport,clipAudio:()=>clipAudio,stationReadFile,sessionFromResults,flowOf,PANEL_POS,panelAngles,SEAT_OFFSETS,sphere:()=>sphere,homeContinueUI,viewState:()=>({viewRef,viewTrimDeg,alignPending,texVF,mipOn,volumeFixes,worldYaw:world?world.rotation.y:null,promptLines,lastFlash}),viewTrim,viewRecentre,calAdjust,calNudge,calRedo,rampIn,volumeGuard,texMode,MOTION,steadySet,steadyFrame,steadyState,setSteady:v=>{ steadyOn=!!v; },renderer:()=>renderer,setRenderHook:f=>{ renderHook=f; },levelSet,levelState:()=>({roll:levelRoll,pitch:levelPitch}),runStartFor,tiltUpdate,runLenS:()=>RUN_LEN_S,steadyApplied:()=>steadyApplied,vtex:()=>vtex,
     world:()=>world,camera:()=>camera,panelGroup:()=>panelGroup,noseDir,placePanels,applySeat,alignNoseToView,cameraYaw,dirToAzEl,setLook:(lo,la)=>{ lon=lo; lat=la; },getLook:()=>({lon,lat}),finishCalibration}; }
 renderClipList();
 })();
