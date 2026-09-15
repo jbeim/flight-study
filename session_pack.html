@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Session Pack: N41533 Detection Study</title>
+<style>
+:root{
+  --bg:#11161c; --panel:#171f28; --panel2:#1d2732; --line:#2b3846; --ink:#e9eef4; --dim:#9fb0c2;
+  --ok:#58c878; --warn:#e8b03f; --bad:#e4574d; --act:#5ac8e8; --accent:#3d7fb5;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding-bottom:60px}
+h1{font-size:1.5rem;margin:0 0 4px}
+h2{font-size:1.18rem;margin:26px 0 8px;color:#fff;border-bottom:1px solid var(--line);padding-bottom:6px}
+h3{font-size:1.02rem;margin:18px 0 6px;color:var(--act)}
+p{margin:9px 0}
+small,.note{color:var(--dim);font-size:.88rem;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:50;background:#0d1217;border-bottom:1px solid var(--line);padding-block:10px}
+.idline{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.idline input{width:auto;min-width:90px;margin:0}
+.idline label{margin:0 2px 0 0;font-size:.8rem;color:var(--dim)}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+nav button{background:var(--panel2);color:var(--dim);border:1px solid var(--line);border-radius:999px;
+  padding:7px 13px;font-size:.85rem;font-weight:600;cursor:pointer}
+nav button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+nav button.done::after{content:" ✓";color:var(--ok)}
+nav button.on.done::after{color:#d6ffe4}
+section.sec{display:none;padding-block:6px 30px}
+section.sec.on{display:block}
+label{display:block;margin:14px 0 4px;font-weight:600;font-size:.93rem}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{
+  width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;
+  padding:11px 12px;font:inherit;margin:0 0 2px}
+textarea{min-height:86px;resize:vertical;line-height:1.5}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:680px){.grid{grid-template-columns:1fr}}
+.doc{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:10px;padding:14px 16px;margin:12px 0;max-height:none}
+.doc h3{margin-top:14px}
+.doc p{font-size:.95rem}
+.read{background:#0f1620;border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:14px 16px;margin:12px 0}
+.read p{font-size:1rem}
+.notam{font:600 .95rem/1.45 ui-monospace,Menlo,Consolas,monospace;background:#0e141b;
+  border-left:4px solid var(--warn);padding:10px 14px;white-space:pre-wrap;margin:10px 0;color:#f0dfae}
+.btn{display:inline-block;background:var(--accent);color:#fff;border:0;border-radius:10px;
+  padding:13px 18px;font:inherit;font-weight:700;cursor:pointer;margin:8px 8px 0 0}
+.btn.quiet{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.btn.bad{background:var(--bad);color:#2a0f0d}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:10px 12px;margin:8px 0;flex-wrap:wrap}
+.tag{font:700 .76rem/1 ui-sans-serif,sans-serif;letter-spacing:.07em;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.tag.wait{background:#232d38;color:var(--dim)} .tag.ok{background:#123822;color:var(--ok)}
+.tag.warn{background:#3b2f12;color:var(--warn)} .tag.bad{background:#3c1815;color:var(--bad)}
+.row .lbl{font-weight:600} .row .det{color:var(--dim);font-size:.86rem;flex:1 1 220px}
+.yn{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 2px}
+.yn button{flex:1 1 90px;background:var(--panel);color:var(--dim);border:1px solid var(--line);
+  border-radius:9px;padding:12px 8px;font:inherit;font-weight:600;cursor:pointer}
+.yn button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.yn button.on.no{background:#6d3a35;border-color:#6d3a35;color:#ffe7e4}
+.chk{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:12px;margin:7px 0;cursor:pointer;font-weight:400;min-height:48px}
+.chk input{width:28px;height:28px;margin:0;flex:0 0 auto}
+.chk span{font-size:.95rem}
+table.ssq{width:100%;border-collapse:collapse;margin:8px 0}
+table.ssq th{font-size:.76rem;color:var(--dim);text-align:center;padding:4px 2px;font-weight:600}
+table.ssq th.l{text-align:left}
+table.ssq td{border-top:1px solid var(--line);padding:5px 2px;text-align:center}
+table.ssq td.l{text-align:left;font-size:.92rem}
+table.ssq input{width:22px;height:22px;margin:0}
+.sig{background:#fff;border:2px solid var(--line);border-radius:10px;touch-action:none;width:100%;height:190px;display:block}
+.warnbox{background:#3b2f12;border:1px solid #6b5420;border-radius:10px;padding:12px 14px;margin:12px 0;color:#f4e3bd;font-size:.92rem}
+.badbox{background:#3c1815;border:1px solid #6d2a24;border-radius:10px;padding:12px 14px;margin:12px 0;color:#ffd9d4;font-size:.92rem}
+.okbox{background:#123822;border:1px solid #1e5c39;border-radius:10px;padding:12px 14px;margin:12px 0;color:#c9f2d8;font-size:.92rem}
+.out{width:100%;min-height:120px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto}
+.qbox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:14px 0}
+.qbox .qn{color:var(--act);font-weight:700;font-size:.82rem;letter-spacing:.06em}
+.qbox .qt{width:100%;background:transparent;border:0;color:#fff;font:600 1rem/1.45 inherit;padding:4px 0;resize:vertical;min-height:auto}
+.qbox .qt:focus{outline:1px dashed var(--accent);outline-offset:3px}
+.stamp{font-size:.8rem;color:var(--dim)}
+.foot{border-top:1px solid var(--line);margin-top:26px;padding-top:12px;color:var(--dim);font-size:.82rem}
+@media print{
+  body{background:#fff;color:#000;font-size:11pt}
+  header.top,nav,.noprint{display:none!important}
+  section.sec{display:block!important;page-break-after:always}
+  .doc,.read,.row,.qbox,.chk{background:#fff;border-color:#999;color:#000}
+  .note,small,.row .det{color:#333}
+  h2{color:#000} h3{color:#000}
+  .sig{border:1px solid #000}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="idline">
+    <b style="font-size:.95rem">Session Pack</b>
+    <label for="f_code">Code</label><input type="text" id="f_code" data-col="participant" placeholder="P01" style="width:80px" autocapitalize="characters" spellcheck="false">
+    <label for="f_date">Date</label><input type="date" id="f_date" data-col="session_date" style="width:150px">
+    <label for="f_res">Researcher</label><input type="text" id="f_res" data-col="researcher_initials" placeholder="JLB" style="width:70px" spellcheck="false">
+    <span class="tag wait" id="saveTag" style="margin-left:auto">NOT SAVED</span>
+  </div>
+  <nav id="nav"></nav>
+</div></header>
+<div class="wrap">
+<!-- ======================= 1 CONSENT ======================= -->
+<section class="sec on" id="s1" data-nav="1 Consent">
+<h1>Informed consent</h1>
+<p class="note">Consent Form v3 (12 September 2026). Go through this with the participant before anything else. Nothing in the session starts until it is signed.</p>
+
+<div class="badbox noprint"><b>The name on this page never leaves this page.</b> It is exported only in the signed consent file, which is saved on its own. It is not in the spreadsheet row, not in the coded notes, and not in anything that travels with the study data.</div>
+
+<div class="doc">
+<p style="text-align:center;margin:0"><b>Oklahoma State University, School of Educational Foundations, Leadership, and Aviation</b></p>
+<p style="text-align:center;margin:2px 0"><b>Consent Form</b></p>
+<p style="text-align:center;margin:2px 0 10px">The Effectiveness of Virtual Cockpit Environments to Evaluate Visual Detection of Small Unmanned Aircraft Systems for Collision Avoidance</p>
+
+<h3>Key Information</h3>
+<p><b>Study Purpose:</b> To learn how pilots visually detect small unmanned aircraft (drones) in a virtual cockpit, and whether that virtual cockpit is a good stand-in for actual flight.</p>
+<p><b>Major Procedures of the Study:</b> Watching recorded approach scenarios through a virtual reality headset, reporting any drone you see with a controller button press and a point of the controller while also saying aloud what you notice, two short questionnaires, and a brief interview.</p>
+<p><b>Duration of Participation:</b> One in-person session of about two hours, with an optional written follow-up a few weeks later that takes about ten to fifteen minutes.</p>
+<p><b>Significant Risks:</b> Mild, short-lived discomfort that some people feel when wearing a virtual reality headset, such as eyestrain, queasiness, or dizziness.</p>
+<p><b>Potential Benefits:</b> There is no direct benefit to you. Your participation helps researchers understand how pilots spot small drones, which matters for everyone who shares the airspace.</p>
+<p><b>Compensation:</b> None. Taking part is voluntary and unpaid.</p>
+
+<h3>Background Information</h3>
+<p>We invite you to participate in a research study on how pilots visually detect small unmanned aircraft, often called drones, in a simulated cockpit. This form will tell you what the study is about, what we will ask you to do, and how your information will be used. Please read this carefully. Feel free to ask questions if you don't understand something. Taking part in this study is completely your choice. You can decide not to join, or if you join, you can stop at any time. There is no punishment or penalty if you decide not to take part or if you quit later. Your decision whether to participate in this study will not affect your employment, your pilot certification, or your standing with any airport, employer, or Oklahoma State University.</p>
+<p><b>This study is being conducted by:</b> Jason Beim, a doctoral student in the School of Educational Foundations, Leadership, and Aviation at Oklahoma State University, and supervised by his faculty adviser, Dr. Jon Loffi, of the same school.</p>
+
+<h3>Procedures</h3>
+<p>If you decide to join, we will ask you to:</p>
+<p>1. Fill out a short survey about your flying experience and a brief questionnaire about how you are feeling, which simply helps us keep an eye on your comfort during the session.</p>
+<p>2. Read a one-page briefing and let us know you understand it.</p>
+<p>3. Put on a virtual reality headset. You will first see a short takeoff, about 25 seconds long, so you can get used to the view, and afterwards be asked whether you noticed anything unusual during it. Then you will watch twelve recorded approach scenarios, each about two minutes long. As you watch, scan the scene the way you would on any approach. When you see a drone, press the controller trigger right away, then point the controller at where you saw it and press again; the study software records the time and pointing direction of each press under your participant code. Also say aloud whatever you notice.</p>
+<p>4. Take a short break partway through, when we will check in again about how you are feeling.</p>
+<p>5. Sit down for a short interview, about 30 to 45 minutes, about how real the environment felt and what the task was like for you. After the interview you may put the headset back on for a short recorded debriefing and a short video that shows where the drones were.</p>
+<p>So that your scanning stays natural and reflects how you really fly, we will not tell you ahead of time which scenarios contain something to spot, how many do, or when. This is necessary so the study results reflect natural scanning behavior. In practice, this means you do nothing differently; you simply observe each approach and note what you see, just as you would on any flight. There are no trick questions or right-or-wrong answers, and your individual performance is not being scored. We are not keeping the study's goal from you; it is the detection of small drones, as described above, and we will go over it with you again at the end of the session. We just do not want to tip off the individual scenarios, because knowing the answers in advance would change how you look.</p>
+<p>It will take about two hours, all in one visit. A few weeks later, we will send you a short summary of the main themes from your own interview and invite you to confirm it, correct it, or pull anything you would rather leave out. That follow-up is optional and takes about ten to fifteen minutes.</p>
+<p>We will be recording audio of the interview portion only, and only with your separate permission below. If you would rather not be recorded, you are still welcome to take part, and the researcher will simply take written notes instead.</p>
+
+<h3>Benefits and Risks of Being in the Study</h3>
+<p>You may not receive direct benefits from this study, but your participation could help researchers better understand how pilots detect small drones and could help others in the future.</p>
+<p>This study involves the following risks:</p>
+<p><b>Privacy Risks:</b> There is a chance your privacy could be at risk, but there are steps in place to keep your information safe. These steps are explained later in this form.</p>
+<p><b>Mild Discomfort from the Headset:</b> Some people feel temporary symptoms when wearing a virtual reality headset, such as eyestrain, mild queasiness, or dizziness. We will take steps to reduce this risk by asking about any history of motion or simulator sickness before we schedule you, checking how you are feeling before, during, and after the session, building in a break partway through, and ending the session if you show or tell us about any discomfort. You can take the headset off and stop at any time. We also ask that you not drive or fly an aircraft right after the session; a quiet place to rest is available, and we will mention this when we schedule you so you can plan your ride. If you do not feel ready to drive when the session ends, let the researcher know, and we will help arrange transportation for you.</p>
+<p>If you get hurt or sick because of this study, the researcher will help you get emergency medical care, and emergency services can be reached from the study location. However, Oklahoma State University will not provide money to compensate you for any injury or illness.</p>
+
+<h3>Will You Get Paid?</h3>
+<p>You will not be paid for participating. There is no payment, gift, or other incentive for taking part, just our thanks.</p>
+
+<h3>How Will Your Information Be Kept Private?</h3>
+<p>The information you share will be kept private. We will assign a code or fake name to your information. Your name will not appear in any reports. A list connecting your real name to the code will be stored in a safe place, separate from all other study data, and only the researcher will be able to open it. We will destroy that list once it is no longer needed, which we expect to be after the data analysis and interview review are finished, by mid-2027.</p>
+<p>Sometimes, we may not be able to keep your information completely private. For example, in interviews or other situations, others may know what you shared. The Researcher will do everything possible to keep your information private, but we cannot promise total confidentiality. Your name will not be used in any publications or reports. If you happen to mention something that could identify you, such as where you work or your home airport, we will remove or generalize it.</p>
+
+<h3>How Your Information Will Be Collected and Stored</h3>
+<p>We will collect your information using questionnaires, a log of your controller responses recorded by the study software (button-press times and pointing directions, stored under your participant code only), an audio recording of the interview, and notes the researcher takes during the session. Your information will be stored on a password-protected, encrypted computer, with an encrypted backup kept on a drive in a locked cabinet. Paper forms and signed consent documents will be kept in a locked drawer.</p>
+<p>Audio recordings will be turned into written text (transcribed) using a transcription service within a software program called MAXQDA. To create the transcript, the audio file is labeled only with your participant code and carries no name or other identifying label. Under the company's license terms, it is used only to produce your transcript and for nothing else. The written transcript is then stored on the researcher's password-protected, encrypted computer and checked against the original recording for accuracy. Before analysis begins, any identifying details you may have mentioned are removed. If you agree to be recorded but would prefer that your audio not be sent to MAXQDA, let us know, and the researcher will transcribe your interview personally instead. Once the recording has been transcribed and checked, it will be deleted, which we expect to occur within about one month of your session, and it will be retained for no longer than one year after the dissertation defense that concludes this doctoral study.</p>
+<p>If your information includes personal details, we will separate and destroy them after the study is complete. This informed consent form will be retained for 3 years after the study is complete, then destroyed. Your de-identified data, which cannot be traced back to you, may be retained indefinitely and used or distributed in future research studies.</p>
+<p>It's very unlikely, but sometimes people who ensure research is conducted safely may ask to see your study information. This would only happen if the law or research rules require us to share it. Also, if a court orders us to share study materials or data, we may have to give them to the court, and your information may no longer be private.</p>
+
+<h3>Voluntary Nature of the Study</h3>
+<p>Being in this study is completely your choice. You will not get in trouble or be punished if you decide not to join. You can also stop being in the study at any time, even if you already said yes, and you can ask us to destroy anything we have collected from you up to that point. The other option is simple: you don't have to participate. You can skip any part of the session and stop at any time. Your decision whether or not to participate in this study will not affect your employment, your certification, or your standing with any airport, employer, or the university.</p>
+
+<h3>Contacts and Questions</h3>
+<p>This study has been checked and approved by the Institutional Review Board (IRB) at Oklahoma State University. The IRB ensures that research involving people is conducted safely and fairly. If you have questions about the research study itself, please contact the Principal Investigator, Jason Beim, at 732-208-9948, jbeim@okstate.edu, or the faculty adviser, Dr. Jon Loffi, at jon.loffi@okstate.edu. If you have questions about your rights as a research volunteer or would simply like to speak with someone not on the research team about concerns regarding this study, please contact the IRB at (405) 744-3377 or irb@okstate.edu. All reports or correspondence will be kept private.</p>
+<p>You will sign this form by hand on a tablet at the start of your session, and you will be given a copy to keep for your records.</p>
+
+<h3>Statement of Consent</h3>
+<p>I have read the above information. I have had the opportunity to ask questions and have my questions answered. I consent to participate in the study.</p>
+<p class="stamp">Consent Form v3 (12 September 2026). OSU IRB application <span id="irbVer">IRB-26-321, approved 1 July 2026 (expedited, category 6); Consent Form v3 approved with the modification of 12 September 2026. The stamped copy in IRBManager carries the version date.</span></p>
+</div>
+
+<h2>Signing</h2>
+<label for="c_name">Participant's full name, printed</label>
+<input type="text" id="c_name" data-private="1" placeholder="typed by the participant or the researcher" autocomplete="off" spellcheck="false">
+
+<label>I give consent to be audiotaped during this study</label>
+<div class="yn" data-yn="c_audio"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button></div>
+<input type="hidden" id="c_audio" data-col="consent_audiotape">
+
+<label>I give consent to be contacted a few weeks after my session to review a summary of my interview</label>
+<div class="yn" data-yn="c_follow"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button></div>
+<input type="hidden" id="c_follow" data-col="consent_member_check">
+
+<label for="sigPad">Participant signature</label>
+<canvas id="sigPad" class="sig"></canvas>
+<button class="btn quiet noprint" type="button" id="sigClear">Clear the signature</button>
+<input type="hidden" id="c_signed" data-col="consent_signed">
+
+<div class="grid">
+<div><label for="c_sigdate">Date signed</label><input type="date" id="c_sigdate" data-col="consent_date"></div>
+<div><label for="c_sigtime">Time signed</label><input type="time" id="c_sigtime" data-col="consent_time"></div>
+</div>
+
+<label for="c_invest">Signature of investigator (typed name is acceptable as an attestation)</label>
+<input type="text" id="c_invest" data-col="consent_investigator" placeholder="Jason L. Beim" spellcheck="false">
+
+<label class="chk noprint"><input type="checkbox" id="c_copy" data-col="consent_copy_given"><span>A copy of the signed consent was given to the participant.</span></label>
+<label class="chk noprint"><input type="checkbox" id="c_questions" data-col="consent_questions_answered"><span>They had the chance to ask questions and their questions were answered.</span></label>
+
+<div class="row noprint"><span class="tag wait" id="consentTag">CONSENT</span><span class="det" id="consentDet">Not signed yet.</span></div>
+<button class="btn noprint" type="button" id="saveConsent" disabled>Save the signed consent as its own file</button>
+<button class="btn quiet noprint" type="button" id="emailConsent" disabled>Email their copy from jbeim@okstate.edu</button>
+<p class="note noprint">Save the file first, then press Email. Your mail app opens with the message written and addressed to them. <b>A web page cannot attach a file to an email for you</b>, so attach the file you just saved before you send it. The email prompts you to do exactly that.</p>
+<label class="chk noprint"><input type="checkbox" id="c_emailed" data-col="consent_copy_emailed"><span>Their copy was emailed to them.</span></label>
+
+<h2>Two extra questions</h2>
+<div class="warnbox noprint"><b>Check these with the IRB before you ask them.</b> Consent Form v3 covers being contacted once, to review a summary of their own interview. Being told about future studies, and being sent the study results later, are further uses of their contact details that the approved form does not mention. Ask the IRB whether they need to go into the consent form first. Until then, leave these blank.</div>
+<label>Would you like to be told about future studies of this kind?</label>
+<div class="yn" data-yn="c_future"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button><button type="button" data-v="Not asked">Not asked</button></div>
+<input type="hidden" id="c_future" data-col="future_studies_contact">
+<label>Would you like the study results sent to you when it is finished?</label>
+<div class="yn" data-yn="c_results"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button><button type="button" data-v="Not asked">Not asked</button></div>
+<input type="hidden" id="c_results" data-col="results_summary_wanted">
+</section>
+<!-- ======================= 2 INTAKE ======================= -->
+<section class="sec" id="s2" data-nav="2 Intake">
+<h1>Pre-session intake form</h1>
+<p class="note">Pre Session Intake Form v0.1. Fill this in with the participant after consent is signed, before the headset goes on.</p>
+
+<h2>Flight experience</h2>
+<div class="grid">
+<div><label for="i_hours">Total flight hours</label><input type="text" id="i_hours" data-col="total_hours" inputmode="decimal" placeholder="e.g. 350"></div>
+<div><label for="i_pic">Pilot-in-command hours, single-engine land</label><input type="text" id="i_pic" data-col="pic_sel_hours" inputmode="decimal" placeholder="e.g. 210"></div>
+<div><label for="i_90">Hours flown in the last 90 days</label><input type="text" id="i_90" data-col="hours_last_90" inputmode="decimal" placeholder="e.g. 12"></div>
+<div><label for="i_last">Date of most recent flight</label><input type="date" id="i_last" data-col="last_flight_date"></div>
+</div>
+<div class="row noprint"><span class="tag wait" id="recencyTag">RECENCY</span><span class="det" id="recencyDet">The thesis examines time since the most recent flight as a covariate, so this is worked out for you.</span></div>
+<input type="hidden" id="i_days" data-col="days_since_last_flight">
+<div class="row noprint"><span class="tag wait" id="eligTag">ELIGIBILITY</span><span class="det" id="eligDet">Enter the hours to check against the study minimums.</span></div>
+
+<h2>Certificates and ratings</h2>
+<label for="i_cert">Highest pilot certificate held</label>
+<select id="i_cert" data-col="highest_certificate">
+<option value="">not entered</option><option>Private</option><option>Commercial</option>
+<option>Airline Transport Pilot (ATP)</option><option>Other</option></select>
+<label for="i_certother">If other, describe</label>
+<input type="text" id="i_certother" data-col="certificate_other" placeholder="leave blank unless Other">
+
+<label>Ratings held (check all that apply)</label>
+<label class="chk"><input type="checkbox" id="i_r_ifr" data-col="rating_instrument"><span>Instrument</span></label>
+<label class="chk"><input type="checkbox" id="i_r_me" data-col="rating_multiengine"><span>Multi-engine</span></label>
+<label class="chk"><input type="checkbox" id="i_r_cfi" data-col="rating_cfi"><span>Certified Flight Instructor (CFI)</span></label>
+<label for="i_r_other">Other ratings</label>
+<input type="text" id="i_r_other" data-col="rating_other" placeholder="leave blank if none">
+
+<label for="i_med">Medical basis for flying</label>
+<select id="i_med" data-col="medical_basis">
+<option value="">not entered</option><option>Current FAA medical certificate</option><option>BasicMed</option></select>
+
+<h2>Vision</h2>
+<p class="note">This study asks for distance vision of 20/40 or better in each eye, with or without correction, which is the standard reflected in a current FAA medical or BasicMed. Based on your medical and your usual experience flying, choose the option that applies.</p>
+<label for="i_vis">Vision standard</label>
+<select id="i_vis" data-col="vision_standard">
+<option value="">not entered</option>
+<option>Meets 20/40 or better in each eye without correction</option>
+<option>Meets 20/40 or better in each eye with usual correction (glasses or contacts)</option>
+<option>Not sure</option></select>
+
+<label for="i_corr">Correction worn during the session</label>
+<select id="i_corr" data-col="correction_worn">
+<option value="">not entered</option><option>None</option><option>Glasses</option><option>Contact lenses</option></select>
+
+<p class="note">The next two items are recorded only to describe the sample. They are not used to decide who can take part.</p>
+<label for="i_colour">Known colour vision deficiency</label>
+<select id="i_colour" data-col="colour_vision_deficiency">
+<option value="">not entered</option><option>No</option><option>Yes</option></select>
+<label for="i_colourdesc">If yes, describe</label>
+<input type="text" id="i_colourdesc" data-col="colour_vision_detail" placeholder="leave blank unless yes">
+<label for="i_astig">Known astigmatism</label>
+<select id="i_astig" data-col="astigmatism">
+<option value="">not entered</option><option>No</option><option>Yes</option></select>
+
+<h2>Pre-session confirmation</h2>
+<label class="chk"><input type="checkbox" id="i_age" data-col="age_18_or_over"><span>Participant is 18 years of age or older. (Confirmed, not recorded: no date of birth is collected.)</span></label>
+<label class="chk"><input type="checkbox" id="i_ms" data-col="no_motion_sickness_history"><span>Participant confirms no history of motion sickness, simulator sickness, or a vestibular condition that would make a VR session unwise.</span></label>
+<label class="chk"><input type="checkbox" id="i_well" data-col="feels_well_today"><span>Participant feels well today and is not ill.</span></label>
+<label class="chk"><input type="checkbox" id="i_drive" data-col="told_not_to_drive"><span>Reminded not to plan on driving straight afterwards, in case a rest period is needed.</span></label>
+
+<label>Reviewed and eligibility confirmed</label>
+<div class="yn" data-yn="i_elig"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button></div>
+<input type="hidden" id="i_elig" data-col="eligibility_confirmed">
+
+<h2>Screening and enrolment</h2>
+<div class="grid">
+<div><label for="i_screen">Date they completed the screener</label><input type="date" id="i_screen" data-col="screener_date"></div>
+<div><label for="i_enrol">Enrolment number in order received</label><input type="text" id="i_enrol" data-col="enrolment_number" inputmode="numeric" placeholder="e.g. 7"></div>
+</div>
+<label>Which run is this?</label>
+<div class="yn" data-yn="i_pilot"><button type="button" data-v="Main study">Main study</button><button type="button" class="no" data-v="Pilot test">Pilot test</button></div>
+<input type="hidden" id="i_pilot" data-col="pilot_test_participant">
+<p class="note">The protocol allows one pilot-test participant, whose interview is used to refine the protocol and is not included in the main analysis. Mark it here so it never gets pooled by accident. Target enrolment is 20 to 25, 25 maximum, plus that one pilot test.</p>
+
+<h2>Session details</h2>
+<div class="grid">
+<div><label for="i_venue">Venue or location</label><select id="i_venue" data-col="venue">
+<option value="">not entered</option>
+<option>Sky Manor Airport, Pittstown NJ</option>
+<option>Morristown Municipal Airport, Morristown NJ</option>
+<option>Braden Airpark, Easton PA</option>
+<option>Other approved site</option></select></div>
+<div><label for="i_headset">Headset ID</label><input type="text" id="i_headset" data-col="headset_id" placeholder="Quest 3, unit 1"></div>
+<div><label for="i_start">Session start time</label><input type="time" id="i_start" data-col="session_start_time"></div>
+<div><label for="i_room">Room conditions</label><input type="text" id="i_room" data-col="room_conditions" placeholder="lighting, noise, fan"></div>
+</div>
+</section>
+
+<!-- ======================= 3 BRIEFING ======================= -->
+<section class="sec" id="s3" data-nav="3 Briefing">
+<h1>Participant briefing</h1>
+<p class="note">Participant Briefing v0.6. The briefing is normally given in the headset while the recording plays. This copy is here for a participant who would rather read it on paper or on the tablet. If they use this copy instead of the headset, record it in the app: Researcher, then "Participant did this outside the headset".</p>
+
+<div class="doc">
+<p style="text-align:center;margin:0"><b>Participant Briefing</b></p>
+<p style="text-align:center;margin:2px 0 10px">Virtual Cockpit Visual Detection Study &nbsp;|&nbsp; Oklahoma State University</p>
+<p>Read this before the session begins. It sets up the scenario you will fly and what to watch for. Ask the researcher if anything is unclear.</p>
+
+<h3>Your Scenario</h3>
+<p>You are the pilot flying a Piper Warrior, a low-wing airplane, on a series of recorded final approaches into Braden Airpark, a small general aviation airport in Easton, Pennsylvania, in day visual conditions. For each approach, fly it as you normally would: keep your eyes outside, monitor the instruments, listen to the radio, and stay aware of what is happening around the aircraft. You will report aloud anything you see or hear that matters, just as you would think out loud in the cockpit.</p>
+<p>Your call sign for the session is:</p>
+<p style="text-align:center;font-size:1.15rem"><b>WARRIOR FOUR-ONE-FIVE-THREE-THREE</b></p>
+<p>When you hear a radio call directed to Warrior Four-One-Five-Three-Three, respond aloud as you would in flight.</p>
+
+<h3>Notice to Air Missions (mock, for this study)</h3>
+<div class="notam">!UAS 06/001 BRADEN AIRPARK (N43), EASTON PA
+UNMANNED AIRCRAFT SYSTEM (UAS) ACTIVITY MAY BE
+ENCOUNTERED IN THE VICINITY OF THE AIRPORT AND
+ALONG FINAL APPROACH. PILOTS ADVISED TO MAINTAIN
+VIGILANCE AND SEE-AND-AVOID. ALT SFC-3000FT AGL.
+DLY 0800-1800 LCL. !N43 06/002 RWY 36 PAPI OTS, INDICATIONS UNRELIABLE.</div>
+<p>This is a simulated NOTAM created for the study. It tells you that drones may be operating in the area, the same kind of advisory you might see before a real flight. It does not tell you whether any particular approach will contain a drone. A second notice advises that the runway 36 precision approach path indicator (PAPI) is out of service with unreliable indications; judge your glidepath visually. Note also: the pilot you see in the video is flying the airplane and exercising normal crew resource management. He may look around, gesture, or point, sometimes at traffic, sometimes not, just as happens on any flight deck. Do not treat his movements as a signal; report only what you see with your own eyes.</p>
+
+<h3>What to Watch For and Report Aloud</h3>
+<p>1. Any unmanned aircraft (drone) you see, as soon as you see it: press the controller trigger right away, then point the controller at where you saw it and press the trigger again to lock it in. Also say aloud where it is relative to your aircraft. If you press by accident, point at the red panel behind you and press; it is simply noted, and the flight continues.</p>
+<p>2. Any time the approach drifts outside normal tolerances (see the reference below).</p>
+<p>3. Any radio call directed to your call sign, Warrior Four-One-Five-Three-Three. Respond aloud.</p>
+
+<h3>Approach Tolerances to Monitor</h3>
+<p>Treat these as the normal limits for a stabilized approach. Call out aloud if the approach goes outside any of them.</p>
+<p><b>Airspeed:</b> within about 10 knots of the target approach speed.<br>
+<b>Glidepath:</b> on or near the normal glidepath, not noticeably high or low.<br>
+<b>Centerline:</b> lined up with the runway, not drifting left or right of the centerline.<br>
+<b>Descent:</b> a steady descent, not a sudden sink or climb.</p>
+</div>
+
+<label for="b_where">How the briefing was given</label>
+<select id="b_where" data-col="briefing_given">
+<option value="">not entered</option>
+<option>In the headset, recording played in full</option>
+<option>On this tablet or on paper, outside the headset</option>
+<option>In the headset, unlocked early by the researcher</option></select>
+<label for="b_notes">Briefing notes</label>
+<textarea id="b_notes" data-col="briefing_notes" placeholder="anything the participant asked about, anything re-explained"></textarea>
+</section>
+
+<!-- ======================= 4 COMPREHENSION ======================= -->
+<section class="sec" id="s4" data-nav="4 Comprehension">
+<h1>Briefing comprehension check</h1>
+<p class="note">A few quick questions to confirm the briefing is clear before we start. There is no grade; this just makes sure we are on the same page. Write what they say, in their words.</p>
+
+<label for="q1">1. What is your call sign for this session?</label>
+<textarea id="q1" data-col="comp_q1_callsign"></textarea>
+<label for="q2">2. When you hear a radio call to your call sign, what should you do?</label>
+<textarea id="q2" data-col="comp_q2_radio"></textarea>
+<label for="q3">3. What should you do with the controller the moment you see a drone?</label>
+<textarea id="q3" data-col="comp_q3_controller"></textarea>
+<label for="q4">4. Does the NOTAM tell you which approaches will contain a drone?</label>
+<textarea id="q4" data-col="comp_q4_notam"></textarea>
+<label for="q5">5. If the approach drifts outside normal limits, for example airspeed or centerline, what should you do?</label>
+<textarea id="q5" data-col="comp_q5_tolerances"></textarea>
+
+<label>Researcher use only: briefing reviewed and questions answered correctly?</label>
+<div class="yn" data-yn="q_ok"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button></div>
+<input type="hidden" id="q_ok" data-col="comprehension_passed">
+<p class="note">If no, re-brief before starting.</p>
+<label for="q_rebrief">What needed re-briefing</label>
+<textarea id="q_rebrief" data-col="comprehension_rebrief_notes"></textarea>
+</section>
+<!-- ======================= 5 SSQ ======================= -->
+<section class="sec" id="s5" data-nav="5 Comfort (SSQ)">
+<h1>Simulator Sickness Questionnaire</h1>
+<p class="note">Kennedy et al. (1993). Given three times: a baseline before the first scenario, again at the midpoint break after scenario six, and once more immediately after the final scenario. For each symptom, ask how they feel <b>right now</b>: none, slight, moderate or severe.</p>
+
+<div class="okbox noprint"><b>Scoring checked 14 September 2026.</b> The sixteen items, the three subscale groupings and the weights (Nausea 9.54, Oculomotor 7.58, Disorientation 13.92, Total 3.74) match Kennedy, Lane, Berbaum and Lilienthal (1993) and the SSQ v0.1 form submitted with the approved application (IRB-26-321), which uses the instrument exactly as published. The raw item sums are shown next to the weighted scores so you can recompute by hand.</div>
+
+<h2>1. Baseline, before the first scenario</h2>
+<div id="ssqPre"></div>
+<div class="row"><span class="tag wait" id="preTag">BASELINE</span><span class="det" id="preDet">Not scored yet.</span></div>
+<p class="note">A baseline outside the normal range is grounds for postponing or cancelling the session.</p>
+<label for="ssq_pre_action">Decision at baseline</label>
+<select id="ssq_pre_action" data-col="ssq_pre_decision">
+<option value="">not entered</option><option>Baseline normal, proceed</option>
+<option>Baseline elevated, proceeded with closer monitoring</option>
+<option>Baseline elevated, session postponed</option>
+<option>Baseline elevated, session cancelled</option></select>
+
+<h2>2. Midpoint, at the break after scenario six</h2>
+<div id="ssqMid"></div>
+<div class="row"><span class="tag wait" id="midTag">MIDPOINT</span><span class="det" id="midDet">Not scored yet.</span></div>
+<p class="note">A meaningful rise above baseline is grounds to end the session at the break rather than continue through the second half.</p>
+<div class="grid">
+<div><label for="br_start">Break started</label><input type="time" id="br_start" data-col="break_start_time"></div>
+<div><label for="br_end">Break ended</label><input type="time" id="br_end" data-col="break_end_time"></div>
+</div>
+<label for="ssq_mid_action">Decision at the break</label>
+<select id="ssq_mid_action" data-col="ssq_mid_decision">
+<option value="">not entered</option><option>No meaningful rise, continued</option>
+<option>Some rise, continued with closer monitoring</option>
+<option>Rise above baseline, session ended at the break</option>
+<option>Participant asked to stop</option></select>
+
+<h2>3. End of session, after the final scenario</h2>
+<div id="ssqPost"></div>
+<div class="row"><span class="tag wait" id="postTag">END</span><span class="det" id="postDet">Not scored yet.</span></div>
+
+<h2>Before they leave</h2>
+<p class="note">Ask how they are feeling now the headset has been off for a bit. This is a wellbeing check, not a medical assessment. Use the end-of-session score as the anchor.</p>
+<label class="chk"><input type="checkbox" id="w_check" data-col="wellbeing_check_done"><span>Wellbeing check-in done after the headset had been off for a while.</span></label>
+<label for="w_state">How they were at the end</label>
+<select id="w_state" data-col="end_state">
+<option value="">not entered</option>
+<option>Back near baseline and feeling fine</option>
+<option>Some symptoms remaining, rested until settled</option>
+<option>Symptoms did not settle</option></select>
+<div class="grid">
+<div><label for="w_rest">Minutes rested before leaving</label><input type="text" id="w_rest" data-col="rest_minutes" inputmode="numeric" placeholder="e.g. 15"></div>
+<div><label for="w_depart">How they left</label><select id="w_depart" data-col="departure">
+<option value="">not entered</option><option>Drove themselves, fit to drive</option>
+<option>Had a ride arranged in advance</option><option>Ride arranged by the researcher</option>
+<option>Other</option></select></div>
+</div>
+<label for="w_notes">Wellbeing notes</label>
+<textarea id="w_notes" data-col="wellbeing_notes"></textarea>
+<label class="chk"><input type="checkbox" id="w_copy" data-col="left_with_consent_copy"><span>They left with their copy of the signed consent.</span></label>
+</section>
+
+<!-- ======================= 6 SESSION LOG ======================= -->
+<section class="sec" id="s6" data-nav="6 Session log">
+<h1>Session observation log</h1>
+<p class="note">The app records every trigger press and pointing direction by itself. This page is for what the app cannot see: what they said aloud, how they reacted, and anything that went wrong. Note the clock time next to anything unusual.</p>
+
+<h2>Times</h2>
+<div class="grid">
+<div><label for="t_on">Headset on</label><input type="time" id="t_on" data-col="headset_on_time"></div>
+<div><label for="t_off">Headset off at the end</label><input type="time" id="t_off" data-col="headset_off_time"></div>
+</div>
+
+<h2>Takeoff question</h2>
+<p class="note">After the 30-second takeoff (app 2.8.1 and later; 25 seconds before that) the app asks "Did you notice anything unusual during the takeoff?" If they answered yes, write what they said they noticed.</p>
+<label for="t_ans">Their answer</label>
+<select id="t_ans" data-col="takeoff_answer">
+<option value="">not entered</option><option>Yes</option><option>No</option></select>
+<label for="t_what">If yes, what they said they noticed</label>
+<textarea id="t_what" data-col="takeoff_what_noticed" placeholder="their words, not a summary"></textarea>
+
+<h2>Spoken reports during the approaches</h2>
+<p class="note">Approach-parameter deviations they caught (the deviation controls are the engagement check) and responses to radio calls to their call sign.</p>
+<label for="l_dev">Deviations called out</label>
+<textarea id="l_dev" data-col="deviations_called" placeholder="e.g. approach 4: called low on glidepath; approach 9: called drifting right of centreline" style="min-height:120px"></textarea>
+<label for="l_radio">Responses to radio calls</label>
+<textarea id="l_radio" data-col="radio_responses" placeholder="which calls they answered, and how"></textarea>
+<label for="l_said">Other things said aloud</label>
+<textarea id="l_said" data-col="spoken_reports" placeholder="drone calls in their own words, position reports, anything else" style="min-height:120px"></textarea>
+
+<h2>Anything that went wrong</h2>
+<label for="l_events">Interruptions, faults, discomfort, equipment trouble</label>
+<textarea id="l_events" data-col="session_events" placeholder="with clock times" style="min-height:120px"></textarea>
+<label>Any adverse event or unanticipated problem?</label>
+<div class="yn" data-yn="l_adverse"><button type="button" data-v="No">No</button><button type="button" class="no" data-v="Yes">Yes</button></div>
+<input type="hidden" id="l_adverse" data-col="adverse_event">
+<div class="badbox noprint">If yes: report it to the OSU IRB within 48 hours (the approved protocol's commitment; the IRB's own limit is 5 days) at 405-744-3377 or irb@okstate.edu, quoting IRB-26-321, and tell Dr. Loffi. Write what happened below, with times.</div>
+<label for="l_adverse_notes">Adverse event detail</label>
+<textarea id="l_adverse_notes" data-col="adverse_event_notes"></textarea>
+</section>
+<!-- ======================= 7 INTERVIEW ======================= -->
+<section class="sec" id="s7" data-nav="7 Interview">
+<h1>Post-session interview</h1>
+<p class="note">Semi-structured, 30 to 45 minutes, immediately after the final scenario. Organised around the three fidelity dimensions from Rehmann et al. (1995): equipment, environment and psychological. Open-ended questions, follow-ups that respond to what they raise, and room for anything the protocol did not anticipate. Stay neutral.</p>
+
+<p class="note">The fifteen questions below are Appendix A, Semi-Structured Interview Protocol v0.1, as submitted with the approved application (IRB-26-321, approved 1 July 2026). The probes under each question are from the same document; use them as needed to follow up on what the participant raises. The protocol allows reordering or rewording for clarity and follow-up questions on anything unanticipated. Stay neutral: do not hint at a preferred answer, agree or disagree, or use terms the participant has not used. When an answer is short or unclear, use a neutral prompt ("Tell me more about that", "What was that like for you", "What do you mean by that") and allow a few seconds of silence first. If they report discomfort, dizziness or eye strain, note it, remind them the session may be stopped, and pause if needed.</p>
+<div class="row noprint"><span class="tag ok" id="qSrcTag">APPENDIX A v0.1</span><span class="det" id="qSrcDet">The approved fifteen questions are loaded.</span></div>
+
+<div class="read">
+<p><b>Opening (read to the participant):</b> "Thank you for completing the scenarios. Before we started today, you reviewed and signed the consent form, which included your permission for me to audio-record this conversation. I want to confirm that it is still all right with you before I begin recording. For the next half hour or so, I would like to hear about your experience of the task in your own words. There are no right or wrong answers, and I am just as interested in where the virtual environment felt like real flying and where it did not. You can ask me to pause or stop the recording at any time, skip any question, or request that anything be removed. Is it all right to begin recording?"</p>
+</div>
+
+<div class="noprint" style="margin:10px 0">
+  <button class="btn quiet" type="button" id="qEditToggle">Change the question wording (only after an IRB-approved amendment)</button>
+  <div id="qEditBox" style="display:none">
+    <p class="note">The protocol says any substantive change to the questions goes to the IRB as an amendment before further interviews. A wording change after the pilot-test interview is the expected case. One question per line, fifteen lines; blank lines are ignored. The probes stay as they are.</p>
+    <label for="qPaste">Question wording</label>
+    <textarea id="qPaste" style="min-height:200px" placeholder="Question 1&#10;Question 2&#10;..."></textarea>
+    <button class="btn" type="button" id="qApply">Use these fifteen questions</button>
+    <button class="btn quiet" type="button" id="qReset">Put the Appendix A v0.1 questions back</button>
+    <p class="note" id="qPasteDet"></p>
+  </div>
+</div>
+
+<div class="grid">
+<div><label for="iv_start">Interview started</label><input type="time" id="iv_start" data-col="interview_start_time"></div>
+<div><label for="iv_end">Interview ended</label><input type="time" id="iv_end" data-col="interview_end_time"></div>
+</div>
+<label>Audio recording confirmed again at the start of the interview</label>
+<div class="yn" data-yn="iv_rec"><button type="button" data-v="Recorded">Recorded</button><button type="button" class="no" data-v="Notes only">Notes only</button></div>
+<input type="hidden" id="iv_rec" data-col="interview_recorded">
+<p class="note">They gave permission on the consent form. Confirm it again here before the recorder starts. If they have changed their mind, take written notes instead: that is their right and it changes nothing else.</p>
+<label for="iv_rec_id">Recorder file reference</label>
+<input type="text" id="iv_rec_id" data-col="interview_audio_ref" placeholder="e.g. REC0042, labelled with the code only">
+
+<div id="qList"></div>
+
+<div class="read">
+<p><b>Closing (read to the participant):</b> "That covers everything I planned to ask. After I review our conversation, I will send you a short summary of the main themes from your interview so that you can confirm I captured what you meant and can correct or add anything. Thank you for your time and for speaking openly and honestly."</p>
+</div>
+
+<h2>Anything else</h2>
+<label for="iv_extra">Things they raised that the questions did not cover</label>
+<textarea id="iv_extra" data-col="interview_emergent" placeholder="the point of a semi-structured interview: what they brought up unprompted" style="min-height:130px"></textarea>
+<label for="iv_impressions">Researcher impressions, written immediately afterwards</label>
+<textarea id="iv_impressions" data-col="interview_impressions" placeholder="reflexive note: what you noticed about your own assumptions during this interview" style="min-height:110px"></textarea>
+</section>
+
+<!-- ======================= 8 DEBRIEF ======================= -->
+<section class="sec" id="s8" data-nav="8 Debriefing">
+<h1>Post-session debriefing</h1>
+<p class="note">Debriefing Script v0.4 (8 September 2026). Read to the participant at the end of the session, after the interview and before they leave, adjusting the wording to sound natural. The participant already learned the study's purpose at consent, so this confirms and explains it. The only detail held back during the task was which scenarios contained a target.</p>
+
+<div class="read">
+<p>"That is the end of the session. I want to go over what this study was looking at, the same purpose you read about when you signed the consent form. The study is testing whether this virtual cockpit setup can be used to study how pilots visually detect small drones from the cockpit, by comparing how often pilots spot them here against detection rates from earlier studies that used real flights.</p>
+<p>You may have noticed that I did not tell you ahead of time which approaches had a drone, how many did, or when one would appear. Some did, and some did not. I held that back on purpose, because if you had known which ones to expect, you would have searched differently than you normally would in flight, and the point is to see how pilots scan when they are not sure anything is there. That was the only detail not shared during the task. Nothing about the study or what you were asked to do was misrepresented.</p>
+<p>One more thing about what you saw. The camera that recorded these flights cannot resolve an object as small as a drone at the distances involved; it sees about three times less finely than your eye does. So on the approaches that had a drone, the drone was drawn back into the recording at exactly the position and path the flight data recorded, at the size your eye would have seen it from the cockpit. Nothing else in the video was changed, and one of the drone approaches was left exactly as the camera recorded it. In a moment I can show you a short video of each drone as it came into view, with an arrow pointing to it and a close-up, so you can see where they were.</p>
+<p>Your responses, including the times of your controller presses and where you pointed, are kept under a code rather than your name and stored securely, as described in the consent form. You can ask me anything now, and if you decide you would rather not have your data included, tell me, and I will remove it. In a few weeks, if you agree, I will send you a short summary of the themes from your interview so you can check that I captured what you meant. Do you have any questions?"</p>
+</div>
+
+<label for="d_how">How the debriefing was given</label>
+<select id="d_how" data-col="debrief_given">
+<option value="">not entered</option>
+<option>In the headset, recording heard in full, then the reveal video</option>
+<option>In the headset, recording heard, reveal video declined</option>
+<option>In person, read aloud by the researcher</option>
+<option>In person because the participant would not put the headset back on</option></select>
+
+<label for="d_reveal">The results video, where the drones were</label>
+<select id="d_reveal" data-col="results_video_watched">
+<option value="">not entered</option><option>Watched to the end</option><option>Started, not finished</option>
+<option>Offered, declined</option><option>Not offered</option></select>
+
+<label for="d_film">Behind-the-scenes film</label>
+<select id="d_film" data-col="fieldwork_film">
+<option value="">not entered</option><option>Watched to the end</option><option>Started, not finished</option>
+<option>Offered, declined</option><option>Not offered</option></select>
+
+<label for="d_q">Questions they asked at debriefing, and what you answered</label>
+<textarea id="d_q" data-col="debrief_questions" style="min-height:120px"></textarea>
+
+<label>Did they ask for their data to be withdrawn?</label>
+<div class="yn" data-yn="d_withdraw"><button type="button" data-v="No">No</button><button type="button" class="no" data-v="Yes">Yes</button></div>
+<input type="hidden" id="d_withdraw" data-col="data_withdrawn">
+<div class="badbox noprint">If yes: remove their data, record it here and in the study records, and tell them it has been done.</div>
+
+<label>Agreed to be contacted for member checking in a few weeks</label>
+<div class="yn" data-yn="d_member"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="No">No</button></div>
+<input type="hidden" id="d_member" data-col="member_check_agreed">
+<p class="note">This should match what they ticked on the consent form. If it differs, the later answer stands and is the one to honour.</p>
+
+<label for="d_notes">Closing notes</label>
+<textarea id="d_notes" data-col="session_notes" placeholder="anything to carry into the analysis, written under the code" style="min-height:120px"></textarea>
+</section>
+<!-- ======================= 9 MEMBER CHECK ======================= -->
+<section class="sec" id="s9m" data-nav="9 Member check">
+<h1>Member checking</h1>
+<p class="note">A few weeks after the session, send the participant a short de-identified summary of the themes from their own interview, and ask them to confirm it, correct it, or pull anything out. Record what came back. This is the credibility check described in the methodology, and it is also a respect practice: it gives them the chance to withdraw material they do not want in the findings.</p>
+
+<h2>Their contact details</h2>
+<div class="badbox noprint"><b>These details stay on this page.</b> Like the name on the consent page, they are never in the spreadsheet row, the CSV, the JSON or the notes sheet. They export only in the contact sheet below, which you keep with the code-to-name key, not with the study data.</div>
+<p class="note">Only collect these if they said yes to being contacted. Check the consent page: if they answered No there, leave this blank and do not contact them.</p>
+<div class="row noprint"><span class="tag wait" id="mcConsentTag">CONSENT</span><span class="det" id="mcConsentDet">Checking the consent answer...</span></div>
+
+<div class="grid">
+<div><label for="mc_email">Email address</label><input type="text" id="mc_email" data-private="1" placeholder="name@example.com" inputmode="email" autocomplete="off" spellcheck="false"></div>
+<div><label for="mc_phone">Phone (optional)</label><input type="text" id="mc_phone" data-private="1" placeholder="optional" inputmode="tel" autocomplete="off"></div>
+</div>
+<label for="mc_pref">Preferred way to be contacted</label>
+<select id="mc_pref" data-col="member_check_contact_method">
+<option value="">not entered</option><option>Email</option><option>Phone</option><option>Either</option></select>
+<label for="mc_best">Best time to reach them, or anything they asked for</label>
+<input type="text" id="mc_best" data-col="member_check_contact_note" placeholder="no personal detail here; this one does travel with the study data">
+
+<h2>The summary you send them</h2>
+<p class="note">Write the themes from their own interview, de-identified. Keep it short. This is what they are being asked to confirm, so write it in plain language, not in coding vocabulary.</p>
+<label for="mc_text">Summary of themes sent to the participant</label>
+<textarea id="mc_text" data-col="member_check_summary_sent" placeholder="Three or four short paragraphs: what you heard them say about the equipment, the environment, and whether it felt like flying." style="min-height:200px"></textarea>
+<button class="btn noprint" type="button" id="mcEmail">Write the member-checking email</button>
+<p class="note noprint" id="mcEmailDet">Opens your mail app with the summary already in the message, addressed to them, from jbeim@okstate.edu. Read it before you send it.</p>
+
+<h2>What came back</h2>
+<div class="grid">
+<div><label for="mc_sent">Date sent</label><input type="date" id="mc_sent" data-col="member_check_date_sent"></div>
+<div><label for="mc_reply">Date they replied</label><input type="date" id="mc_reply" data-col="member_check_date_reply"></div>
+<div><label for="mc_chase">Date chased, if you had to</label><input type="date" id="mc_chase" data-col="member_check_date_chased"></div>
+<div><label for="mc_rounds">Rounds of correspondence</label><input type="text" id="mc_rounds" data-col="member_check_rounds" inputmode="numeric" placeholder="1"></div>
+</div>
+
+<label for="mc_outcome">Outcome</label>
+<select id="mc_outcome" data-col="member_check_outcome">
+<option value="">not entered</option>
+<option>Confirmed the summary as written</option>
+<option>Confirmed with minor corrections</option>
+<option>Corrected substantially</option>
+<option>Asked for material to be removed</option>
+<option>Asked for their data to be withdrawn entirely</option>
+<option>No reply after follow-up</option>
+<option>Declined to take part in member checking</option></select>
+
+<label for="mc_reply_text">What they said, in their words</label>
+<textarea id="mc_reply_text" data-col="member_check_reply" placeholder="paste or type their reply, with anything identifying taken out" style="min-height:160px"></textarea>
+
+<label for="mc_changes">What you changed in the analysis as a result</label>
+<textarea id="mc_changes" data-col="member_check_changes_made" placeholder="if nothing changed, say so and why" style="min-height:110px"></textarea>
+
+<label for="mc_removed">Anything they asked to have removed</label>
+<textarea id="mc_removed" data-col="member_check_removed" placeholder="what was removed, and confirmation that it was" style="min-height:90px"></textarea>
+
+<label>Have you confirmed to them that it was done?</label>
+<div class="yn" data-yn="mc_confirmed"><button type="button" data-v="Yes">Yes</button><button type="button" class="no" data-v="Not yet">Not yet</button><button type="button" data-v="Nothing to confirm">Nothing to confirm</button></div>
+<input type="hidden" id="mc_confirmed" data-col="member_check_confirmed_back">
+
+<label>Member checking closed for this participant</label>
+<div class="yn" data-yn="mc_closed"><button type="button" data-v="Yes">Closed</button><button type="button" class="no" data-v="No">Still open</button></div>
+<input type="hidden" id="mc_closed" data-col="member_check_closed">
+
+<h2>When this is finished</h2>
+<label class="chk"><input type="checkbox" id="mc_delcontact" data-col="contact_details_destroyed"><span>Their contact details have been destroyed, and the code-to-name key updated. Due once member checking and analysis are done, by mid-2027.</span></label>
+</section>
+<!-- ======================= 9 EXPORT ======================= -->
+<section class="sec" id="s9" data-nav="9 Finish and export">
+<h1>Finish and export</h1>
+<p class="note">Everything on this page is built from what you typed. The participant's name is never in any of it except the signed consent file, which is saved on its own from the consent page.</p>
+
+<div class="row"><span class="tag wait" id="doneTag">CHECK</span><span class="det" id="doneDet">Checking...</span></div>
+<div id="missList" class="note"></div>
+
+<h2>1. The spreadsheet row</h2>
+<p class="note">One row, tab separated, in the same column order every time. Paste it straight into a spreadsheet and it lands one value per cell. Paste the header row once, at the top of a new sheet, then one participant row per session.</p>
+<button class="btn" type="button" id="copyRow">Copy this participant's row</button>
+<button class="btn quiet" type="button" id="copyHead">Copy the header row</button>
+<button class="btn quiet" type="button" id="copyBoth">Copy header and row together</button>
+<p class="note" id="copyDet">If copying does not work on this tablet, select the text in the box below and copy it by hand.</p>
+<textarea class="out" id="rowOut" readonly style="min-height:150px"></textarea>
+
+<h2>2. Files to keep</h2>
+<button class="btn" type="button" id="dlCsv">Save this participant as a CSV file</button>
+<button class="btn quiet" type="button" id="dlJson">Save the full record as a JSON file</button>
+<button class="btn quiet" type="button" id="dlNotes">Save a readable notes sheet</button>
+<p class="note">The CSV is the same two lines as above, as a file. The JSON is everything, including the answers to every interview question, for your own records. The notes sheet is for reading and printing. None of the three contains the name.</p>
+
+<h2>3. The contact sheet</h2>
+<p class="note">Their name, email and phone, under the code. This is the only file besides the signed consent that carries anything identifying. Keep it wherever the code-to-name key lives, not with the study data, and destroy it when member checking and analysis are done.</p>
+<button class="btn quiet" type="button" id="dlContact">Save the contact sheet</button>
+
+<h2>4. Data handling, after they leave</h2>
+<p class="note">The obligations from the protocol, in order. Tick them as you go; they travel in the row so you can see at a glance which participants are fully closed out.</p>
+<label class="chk"><input type="checkbox" id="h_audio_moved" data-col="audio_moved_to_encrypted"><span>Audio moved to the encrypted computer and deleted off the recorder.</span></label>
+<label class="chk"><input type="checkbox" id="h_transcribed" data-col="transcribed"><span>Transcribed.</span></label>
+<label class="chk"><input type="checkbox" id="h_checked" data-col="transcript_checked"><span>Transcript checked in full against the audio.</span></label>
+<label class="chk"><input type="checkbox" id="h_deident" data-col="transcript_deidentified"><span>Identifying detail taken out of the transcript.</span></label>
+<label class="chk"><input type="checkbox" id="h_audio_del" data-col="audio_deleted"><span>Audio deleted. Expected within about one month of the session.</span></label>
+<label class="chk"><input type="checkbox" id="h_zip" data-col="headset_zip_imported"><span>Headset zip copied to the computer and imported at the station, joined, saved and locked.</span></label>
+<label class="chk"><input type="checkbox" id="h_ssq" data-col="ssq_entered_under_code"><span>SSQ scores entered under the participant code.</span></label>
+<label class="chk"><input type="checkbox" id="h_paper" data-col="paper_filed"><span>Paper forms and the signed consent filed in the locked cabinet.</span></label>
+<label class="chk"><input type="checkbox" id="h_backup" data-col="backup_run"><span>BACKUP_TO_F_DRIVE.bat run at the end of the day.</span></label>
+<div class="grid">
+<div><label for="h_audio_del_date">Date the audio was deleted</label><input type="date" id="h_audio_del_date" data-col="audio_deleted_date"></div>
+<div><label for="h_consent_destroy">Consent form destroy-by date</label><input type="date" id="h_consent_destroy" data-col="consent_destroy_by" placeholder="3 years after the study closes"></div>
+</div>
+
+<h2>5. Print</h2>
+<button class="btn quiet" type="button" id="doPrint">Print or save as PDF</button>
+<p class="note">Prints every page of this pack in order, including the consent form with the signature. Use this for the participant's copy.</p>
+
+<h2>6. Clear for the next participant</h2>
+<div class="warnbox noprint">Export first. Clearing wipes the form on this tablet, and there is no way back.</div>
+<button class="btn bad" type="button" id="clearAll">Clear this form for the next participant</button>
+<p class="note" id="clearDet"></p>
+
+<h2>Saved on this tablet</h2>
+<div id="storeList" class="note"></div>
+<p class="note">The pack keeps a copy under each participant code as you type, so a closed tab or a flat battery does not lose the session. Export anyway: this is a convenience, not a record.</p>
+
+<div class="foot">
+Session Pack v1.2 &middot; built 14 September 2026 for the N41533 detection study &middot; IRB-26-321 &middot;
+Consent Form v3, Participant Briefing v0.6, Pre Session Intake Form v0.1, Debriefing Script v0.4 &middot;
+SSQ after Kennedy et al. (1993) &middot; interview: Appendix A, Semi-Structured Interview Protocol v0.1 (Rehmann et al., 1995)
+</div>
+</section>
+</div>
+<script>
+"use strict";
+var $=function(id){return document.getElementById(id);};
+var qs=function(s,r){return (r||document).querySelector(s);};
+var qsa=function(s,r){return [].slice.call((r||document).querySelectorAll(s));};
+
+/* ---------- SSQ: the sixteen items, and the standard scoring ---------- */
+var SSQ_ITEMS=["General discomfort","Fatigue","Headache","Eyestrain","Difficulty focusing",
+"Increased salivation","Sweating","Nausea","Difficulty concentrating","Fullness of head",
+"Blurred vision","Dizzy (eyes open)","Dizzy (eyes closed)","Vertigo","Stomach awareness","Burping"];
+/* item indices contributing to each subscale, Kennedy et al. (1993) */
+var SSQ_N=[0,5,6,7,8,14,15];            /* nausea */
+var SSQ_O=[0,1,2,3,4,8,10];             /* oculomotor */
+var SSQ_D=[4,7,9,10,11,12,13];          /* disorientation */
+var SSQ_W={N:9.54,O:7.58,D:13.92,T:3.74};
+var SSQ_KEYS=["none","slight","moderate","severe"];
+
+function ssqBuild(hostId,pfx){
+  var host=$(hostId); if(!host) return;
+  var t=document.createElement("table"); t.className="ssq";
+  var head="<tr><th class='l'>Symptom right now</th><th>None</th><th>Slight</th><th>Moderate</th><th>Severe</th></tr>";
+  var body="";
+  for(var i=0;i<SSQ_ITEMS.length;i++){
+    var slug=SSQ_ITEMS[i].toLowerCase().replace(/[^a-z]+/g,"_").replace(/^_|_$/g,"");
+    body+="<tr><td class='l'>"+SSQ_ITEMS[i]+"</td>";
+    for(var v=0;v<4;v++){
+      var id=pfx+"_"+i+"_"+v;
+      body+="<td><input type='radio' name='"+pfx+"_"+i+"' id='"+id+"' value='"+v+"'"+
+            (v===0?" data-col='ssq_"+pfx+"_item_"+slug+"'":"")+"></td>";
+    }
+    body+="</tr>";
+  }
+  t.innerHTML=head+body; host.appendChild(t);
+}
+function ssqRaw(pfx,idxs){
+  var s=0; for(var k=0;k<idxs.length;k++){ var sel=qs("input[name='"+pfx+"_"+idxs[k]+"']:checked"); if(sel) s+=+sel.value; }
+  return s;
+}
+function ssqAnswered(pfx){
+  var n=0; for(var i=0;i<16;i++){ if(qs("input[name='"+pfx+"_"+i+"']:checked")) n++; } return n;
+}
+function ssqScore(pfx){
+  var n=ssqRaw(pfx,SSQ_N),o=ssqRaw(pfx,SSQ_O),d=ssqRaw(pfx,SSQ_D);
+  return { answered:ssqAnswered(pfx), rawN:n, rawO:o, rawD:d,
+    N:+(n*SSQ_W.N).toFixed(2), O:+(o*SSQ_W.O).toFixed(2), D:+(d*SSQ_W.D).toFixed(2),
+    T:+((n+o+d)*SSQ_W.T).toFixed(2) };
+}
+function ssqUI(){
+  var sets=[["pre","preTag","preDet","BASELINE"],["mid","midTag","midDet","MIDPOINT"],["post","postTag","postDet","END"]];
+  var base=ssqScore("pre");
+  for(var i=0;i<sets.length;i++){
+    var pfx=sets[i][0], s=ssqScore(pfx), tag=$(sets[i][1]), det=$(sets[i][2]);
+    if(!tag) continue;
+    if(s.answered===0){ tag.className="tag wait"; tag.textContent=sets[i][3]; det.textContent="Not scored yet."; continue; }
+    var txt="Total "+s.T+"  (nausea "+s.N+", oculomotor "+s.O+", disorientation "+s.D+
+            ")  raw sums N"+s.rawN+" O"+s.rawO+" D"+s.rawD+"  "+s.answered+" of 16 items answered";
+    if(pfx!=="pre" && base.answered>0){ var ch=+(s.T-base.T).toFixed(2);
+      txt+="  |  change from baseline "+(ch>0?"+":"")+ch; }
+    det.textContent=txt;
+    tag.className="tag "+(s.answered<16?"warn":(pfx!=="pre"&&base.answered>0&&s.T-base.T>=20?"bad":"ok"));
+    tag.textContent=s.answered<16?"PART DONE":(pfx!=="pre"&&base.answered>0&&s.T-base.T>=20?"RISEN":"SCORED");
+  }
+}
+
+/* ---------- the interview questions ---------- */
+var Q_DEFAULT=[
+ "To start, tell me about your flying and the kind of traffic scanning you do in your normal operations.",
+ "Thinking about the headset and the image itself, describe what the display was like to look through during the scenarios.",
+ "Did the way the image was presented ever make the task easier or harder than looking out a real windscreen?",
+ "Describe the cockpit you found yourself in when the scenario started.",
+ "Tell me about the world outside the windscreen.",
+ "Think about how much of the scene you could take in at once. How did the extent of your view compare with what you have from the cockpit?",
+ "Tell me about what you heard during the scenarios.",
+ "Did the visual scene give you the cues you normally rely on to judge distance and pick a small object out of the background?",
+ "Walk me through how you searched for traffic during the scenarios.",
+ "When you did detect something, describe what caught your attention and what you did next.",
+ "During the scenarios, you also responded to radio calls to your aircraft while you were scanning. Walk me through what that was like.",
+ "How engaged were you in the task compared with looking for traffic in an actual flight?",
+ "Taking the whole experience together, how representative was it of scanning for traffic during an actual flight?",
+ "If a researcher told you that detection results from this setup could stand in for results from a real flight, how much would you trust that, and why?",
+ "Is there anything about the experience we have not talked about that stood out to you?"
+];
+/* Appendix A v0.1: section for each question, and the probes under it */
+var Q_SECTION=["Section 1. Background and context","Section 2. Equipment fidelity (the headset and display)","","Section 3. Environmental fidelity (the recorded cockpit scene)","","","","","Section 4. Psychological fidelity (the scanning task)","","","","Section 5. Overall representativeness","",""];
+var Q_PROBES=[
+ "What aircraft and environment do you typically fly in? How often are you actively looking out the window for other traffic? Have you ever seen a drone from the cockpit in flight?",
+ "How clear or sharp was the image? Did the headset fit comfortably throughout the whole session? Did the hardware itself get in the way of what you could see or how long you could keep searching, for example its weight or how well it held focus? Did you notice any lag, blur, or shake when you moved your head? Did you feel any discomfort, dizziness, or eye strain at any point?",
+ "Where did the display help? Where did it get in the way?",
+ "How did the left-seat perspective, the panel, and the windscreen frame compare with a Cessna 172 you have flown? Did the horizon sit where you expected it to? Did anything about the seating position or geometry feel off? (The recording aircraft is a Piper Warrior; ask the comparison against the aircraft they fly.)",
+ "How did the sky, terrain, and background look to you? How did the lighting compare with the conditions you usually fly in? When you turned to look toward the edges of your view, was as much of the scene there as you would have had out the side windows of the aircraft?",
+ "Was there as much to either side as you are used to? Was there ever anything at the edges of your view that felt different from the aircraft?",
+ "How did the engine and cockpit sounds compare with what you hear in flight? How did the radio traffic sound to you? Did the sound add to the sense of being in the airplane, or take away from it?",
+ "How did depth and distance read to you? Was it easy or hard to separate a target from the clutter behind it?",
+ "How did your scan compare with the scan you use in the aircraft? Did you settle into a pattern? Did the environment let you scan the way you wanted to?",
+ "What was the cue: movement, shape, contrast? How confident were you that it was real? In a real cockpit, what would you have done at that moment?",
+ "How did splitting your attention between the radio and the scan compare with doing both in the aircraft? Did the radio change where or how you looked? Did it ever pull your attention off the scan the way it can in flight?",
+ "Did the scenarios hold your attention? Was the workload similar, lighter, or heavier than real scanning? Were there moments when you forgot you were in a headset, or moments when you were very aware of it?",
+ "Where did it succeed in feeling like real flying? Where did it fall short?",
+ "What would you want changed or improved before you would rely on it?",
+ ""
+];
+var QKEY="sessionpack_questions_v2";
+function qLoad(){ try{ var s=localStorage.getItem(QKEY); if(s){ var a=JSON.parse(s); if(a&&a.length===15) return a; } }catch(e){} return Q_DEFAULT.slice(); }
+function qSave(a){ try{ localStorage.setItem(QKEY,JSON.stringify(a)); }catch(e){} }
+function qBuild(){
+  var list=$("qList"); if(!list) return; var qs_=qLoad(); list.innerHTML="";
+  for(var i=0;i<15;i++){
+    if(Q_SECTION[i]){ var h=document.createElement("h3"); h.textContent=Q_SECTION[i]; list.appendChild(h); }
+    var d=document.createElement("div"); d.className="qbox";
+    d.innerHTML="<div class='qn'>QUESTION "+(i+1)+"</div>"+
+      "<textarea class='qt' id='qt"+i+"' rows='2'></textarea>"+
+      (Q_PROBES[i]?"<p class='note' style='margin:2px 0 6px'><b>Probes:</b> "+Q_PROBES[i]+"</p>":"")+
+      "<textarea id='qa"+i+"' data-col='interview_q"+(i+1)+"' placeholder='what they said, in their words' style='min-height:100px'></textarea>";
+    list.appendChild(d);
+    $("qt"+i).value=qs_[i];
+    $("qt"+i).addEventListener("input",function(){ var a=[]; for(var j=0;j<15;j++) a.push($("qt"+j).value); qSave(a); });
+  }
+}
+
+/* ---------- signature ---------- */
+var sigDrawn=false, sigCtx=null;
+function sigInit(){
+  var c=$("sigPad"); if(!c) return;
+  function size(){ var r=c.getBoundingClientRect(), d=window.devicePixelRatio||1;
+    var img=sigDrawn?c.toDataURL():null;
+    c.width=Math.round(r.width*d); c.height=Math.round(r.height*d);
+    sigCtx=c.getContext("2d"); sigCtx.scale(d,d); sigCtx.lineWidth=2.2; sigCtx.lineCap="round";
+    sigCtx.lineJoin="round"; sigCtx.strokeStyle="#0b1620";
+    if(img){ var im=new Image(); im.onload=function(){ sigCtx.drawImage(im,0,0,r.width,r.height); }; im.src=img; } }
+  size(); window.addEventListener("resize",size);
+  var drawing=false,last=null;
+  function pt(e){ var r=c.getBoundingClientRect(); var t=e.touches?e.touches[0]:e;
+    return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+  function down(e){ e.preventDefault(); drawing=true; last=pt(e); }
+  function move(e){ if(!drawing) return; e.preventDefault(); var p=pt(e);
+    sigCtx.beginPath(); sigCtx.moveTo(last.x,last.y); sigCtx.lineTo(p.x,p.y); sigCtx.stroke();
+    last=p; if(!sigDrawn){ sigDrawn=true; consentUI(); save(); } }
+  function up(){ drawing=false; save(); }
+  c.addEventListener("pointerdown",down); c.addEventListener("pointermove",move);
+  window.addEventListener("pointerup",up);
+  c.addEventListener("touchstart",down,{passive:false}); c.addEventListener("touchmove",move,{passive:false});
+  window.addEventListener("touchend",up);
+  $("sigClear").onclick=function(){ sigCtx.clearRect(0,0,c.width,c.height); sigDrawn=false; consentUI(); save(); };
+}
+function sigData(){ var c=$("sigPad"); return (c&&sigDrawn)?c.toDataURL("image/png"):""; }
+function sigSet(d){ var c=$("sigPad"); if(!c||!d) return; var im=new Image();
+  im.onload=function(){ var r=c.getBoundingClientRect(); sigCtx.drawImage(im,0,0,r.width,r.height); sigDrawn=true; consentUI(); };
+  im.src=d; }
+
+/* ---------- yes / no buttons ---------- */
+function ynInit(){
+  qsa("[data-yn]").forEach(function(g){
+    var target=$(g.getAttribute("data-yn"));
+    qsa("button",g).forEach(function(b){
+      b.onclick=function(){
+        qsa("button",g).forEach(function(x){x.classList.remove("on");});
+        b.classList.add("on"); target.value=b.getAttribute("data-v"); onChange();
+      };
+    });
+  });
+}
+function ynPaint(){
+  qsa("[data-yn]").forEach(function(g){
+    var v=($(g.getAttribute("data-yn"))||{}).value||"";
+    qsa("button",g).forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-v")===v); });
+  });
+}
+</script>
+<script>
+"use strict";
+/* ---------- the spreadsheet columns, derived from the form itself ---------- */
+function fields(){
+  /* DOM order, so the header and the row can never drift apart */
+  return qsa("[data-col]").map(function(el){
+    return {el:el, col:el.getAttribute("data-col")};
+  });
+}
+function valueOf(el){
+  if(el.type==="checkbox") return el.checked?"yes":"no";
+  if(el.type==="radio"){
+    /* the first radio of an SSQ item carries the column; read the chosen one */
+    var sel=qs("input[name='"+el.name+"']:checked");
+    return sel?SSQ_KEYS[+sel.value]:"";
+  }
+  return (el.value||"").replace(/\r?\n/g," / ").replace(/\t/g," ").trim();
+}
+function extraCols(){
+  var pre=ssqScore("pre"), mid=ssqScore("mid"), post=ssqScore("post");
+  var o={};
+  [["pre",pre],["mid",mid],["post",post]].forEach(function(p){
+    var k=p[0],s=p[1];
+    o["ssq_"+k+"_items_answered"]=s.answered;
+    o["ssq_"+k+"_raw_nausea"]=s.answered?s.rawN:"";
+    o["ssq_"+k+"_raw_oculomotor"]=s.answered?s.rawO:"";
+    o["ssq_"+k+"_raw_disorientation"]=s.answered?s.rawD:"";
+    o["ssq_"+k+"_nausea"]=s.answered?s.N:"";
+    o["ssq_"+k+"_oculomotor"]=s.answered?s.O:"";
+    o["ssq_"+k+"_disorientation"]=s.answered?s.D:"";
+    o["ssq_"+k+"_total"]=s.answered?s.T:"";
+  });
+  o["ssq_mid_change_from_baseline"]=(pre.answered&&mid.answered)?+(mid.T-pre.T).toFixed(2):"";
+  o["ssq_post_change_from_baseline"]=(pre.answered&&post.answered)?+(post.T-pre.T).toFixed(2):"";
+  var qtext=qLoad();
+  for(var i=0;i<15;i++) o["interview_q"+(i+1)+"_text"]=qtext[i];
+  o["pack_version"]="Session Pack v1.2";
+  o["exported_at"]=new Date().toISOString();
+  return o;
+}
+function dupCols(cols){
+  var seen={},dup=[];
+  cols.forEach(function(c){ if(seen[c]) { if(dup.indexOf(c)<0) dup.push(c); } else seen[c]=1; });
+  return dup;
+}
+function rowData(){
+  var cols=[],vals=[];
+  fields().forEach(function(f){
+    if(f.el.getAttribute("data-private")==="1") return;   /* the name never travels */
+    cols.push(f.col); vals.push(valueOf(f.el));
+  });
+  var x=extraCols();
+  Object.keys(x).forEach(function(k){ cols.push(k); vals.push(String(x[k])); });
+  return {cols:cols, vals:vals};
+}
+function tsv(){ var d=rowData(); return {head:d.cols.join("\t"), row:d.vals.join("\t")}; }
+function csvCell(s){ s=String(s==null?"":s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function csvText(){ var d=rowData();
+  return d.cols.map(csvCell).join(",")+"\r\n"+d.vals.map(csvCell).join(",")+"\r\n"; }
+
+/* ---------- saving on the tablet ---------- */
+function codeNow(){ return ($("f_code").value||"").trim().toUpperCase().replace(/[^A-Z0-9_-]/g,"")||"NOCODE"; }
+function storeKey(c){ return "sessionpack_"+(c||codeNow()); }
+function snapshot(){
+  var o={_saved:new Date().toISOString(), _sig:sigData(), _q:qLoad(), v:{}};
+  fields().forEach(function(f){
+    var el=f.el, id=el.id||el.name;
+    if(el.type==="checkbox"){ o.v["c:"+el.id]=el.checked; }
+    else if(el.type==="radio"){ var sel=qs("input[name='"+el.name+"']:checked"); o.v["r:"+el.name]=sel?sel.value:""; }
+    else { o.v["f:"+el.id]=el.value; }
+  });
+  qsa("[data-private]").forEach(function(el){ o.v["p:"+el.id]=el.value; });
+  for(var i=0;i<15;i++){ var a=$("qa"+i); if(a) o.v["f:"+a.id]=a.value; }
+  return o;
+}
+function restore(o){
+  if(!o||!o.v) return;
+  Object.keys(o.v).forEach(function(k){
+    var kind=k.slice(0,2), id=k.slice(2), val=o.v[k];
+    if(kind==="c:"){ var c=$(id); if(c) c.checked=!!val; }
+    else if(kind==="r:"){ if(val!==""){ var r=$(id+"_"+val); if(r) r.checked=true; } }
+    else { var e=$(id); if(e) e.value=val; }
+  });
+  /* the question wording is a study-level setting, not a per-participant one: reopening an old
+     session restores its answers but must never overwrite the protocol currently in force */
+  if(o._sig) sigSet(o._sig);
+  ynPaint(); ssqUI(); allUI();
+}
+var saveTimer=null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(function(){
+    try{ localStorage.setItem(storeKey(),JSON.stringify(snapshot()));
+      var t=$("saveTag"); t.className="tag ok"; t.textContent="SAVED "+new Date().toTimeString().slice(0,5);
+    }catch(e){ var t2=$("saveTag"); t2.className="tag bad"; t2.textContent="NOT SAVED"; }
+    storeList();
+  },350);
+}
+function storeList(){
+  var host=$("storeList"); if(!host) return; var out=[],i,k;
+  try{ for(i=0;i<localStorage.length;i++){ k=localStorage.key(i);
+    if(k.indexOf("sessionpack_")===0 && k!=="sessionpack_questions_v1"){
+      var o=null; try{ o=JSON.parse(localStorage.getItem(k)); }catch(e){}
+      out.push(k.replace("sessionpack_","")+"  saved "+((o&&o._saved)?o._saved.replace("T"," ").slice(0,16):"?"));
+    } } }catch(e){}
+  host.textContent=out.length?out.join("\n"):"Nothing saved on this tablet yet.";
+  host.style.whiteSpace="pre";
+}
+
+/* ---------- little status readouts ---------- */
+function consentUI(){
+  var tag=$("consentTag"), det=$("consentDet"); if(!tag) return;
+  var name=($("c_name").value||"").trim(), a=$("c_audio").value, f=$("c_follow").value;
+  $("c_signed").value = sigDrawn?"yes":"no";
+  /* the copy can be emailed as soon as there is a name and a signature, whatever else is outstanding */
+  var em=$("emailConsent"); if(em) em.disabled=!(sigDrawn&&name);
+  var miss=[];
+  if(!name) miss.push("the printed name");
+  if(!sigDrawn) miss.push("the signature");
+  if(!a) miss.push("the audio recording answer");
+  if(!f) miss.push("the follow-up contact answer");
+  if(miss.length){ tag.className="tag warn"; tag.textContent="NOT COMPLETE";
+    det.textContent="Still needed: "+miss.join(", ")+"."; $("saveConsent").disabled=true; }
+  else { tag.className="tag ok"; tag.textContent="SIGNED";
+    det.textContent="Signed by "+name+". Audiotaping: "+a+". Member checking: "+f+".";
+    $("saveConsent").disabled=false; }
+}
+function eligUI(){
+  var tag=$("eligTag"), det=$("eligDet"); if(!tag) return;
+  var h=parseFloat($("i_hours").value), p=parseFloat($("i_pic").value);
+  var notes=[];
+  if(!isNaN(h)&&h<100) notes.push("total hours below the 100-hour minimum");
+  if(!isNaN(p)&&p<20) notes.push("PIC single-engine land below the 20-hour minimum");
+  if($("i_vis").value==="Not sure") notes.push("vision standard not confirmed");
+  if($("i_ms")&&!$("i_ms").checked) notes.push("motion or simulator sickness history not yet confirmed");
+  if(isNaN(h)&&isNaN(p)){ tag.className="tag wait"; tag.textContent="ELIGIBILITY";
+    det.textContent="Enter the hours to check against the study minimums."; return; }
+  if(notes.length){ tag.className="tag warn"; tag.textContent="CHECK";
+    det.textContent="Worth a second look: "+notes.join("; ")+". The study asks for 100+ hours with 20 PIC single-engine land, and 20/40 vision in each eye."; }
+  else { tag.className="tag ok"; tag.textContent="MEETS MINIMUMS";
+    det.textContent="Hours and vision meet the stated minimums. Eligibility is still your call."; }
+}
+function doneUI(){
+  var tag=$("doneTag"), det=$("doneDet"), list=$("missList"); if(!tag) return;
+  var miss=[];
+  if(!($("f_code").value||"").trim()) miss.push("participant code");
+  if(!($("f_date").value||"")) miss.push("session date");
+  if($("c_signed").value!=="yes") miss.push("signed consent");
+  if(!$("i_elig").value) miss.push("eligibility confirmed");
+  if(ssqAnswered("pre")===0) miss.push("baseline SSQ");
+  if(ssqAnswered("post")===0) miss.push("end-of-session SSQ");
+  if(!$("q_ok").value) miss.push("comprehension check");
+  if(!$("d_how").value) miss.push("how the debriefing was given");
+  if(!$("i_pilot").value) miss.push("whether this is the main study or the pilot test");
+  var answered=0; for(var i=0;i<15;i++){ var a=$("qa"+i); if(a&&a.value.trim()) answered++; }
+  if(answered===0) miss.push("interview notes");
+  if(miss.length){ tag.className="tag warn"; tag.textContent="INCOMPLETE";
+    det.textContent=miss.length+" thing"+(miss.length===1?"":"s")+" still open. You can export anyway.";
+    list.textContent="Still open: "+miss.join(", ")+".  Interview questions with notes: "+answered+" of 15."; }
+  else { tag.className="tag ok"; tag.textContent="COMPLETE";
+    det.textContent="Everything the pack asks for has been filled in.";
+    list.textContent="Interview questions with notes: "+answered+" of 15."; }
+}
+function rowUI(){ var o=$("rowOut"); if(!o) return; var t=tsv(); o.value=t.head+"\n"+t.row;
+  var d=dupCols(rowData().cols), det=$("copyDet");
+  if(d.length){ det.textContent="STOP: these column names appear more than once, so the row would not line up: "+d.join(", ")+". Tell Claude before using this row."; det.style.color="#e4574d"; }
+}
+function recencyUI(){
+  var tag=$("recencyTag"), det=$("recencyDet"), out=$("i_days"); if(!tag) return;
+  var v=$("i_last").value;
+  if(!v){ out.value=""; tag.className="tag wait"; tag.textContent="RECENCY";
+    det.textContent="The thesis examines time since the most recent flight as a covariate, so this is worked out for you."; return; }
+  var d=Math.round((new Date($("f_date").value||new Date())-new Date(v))/86400000);
+  out.value=String(d);
+  tag.className="tag "+(d<0?"bad":"ok"); tag.textContent=d<0?"CHECK DATE":"RECENCY";
+  det.textContent=d<0?"The most recent flight is after the session date. Check both dates."
+    :d+" day"+(d===1?"":"s")+" since their most recent flight. This goes into the row as days_since_last_flight.";
+}
+function memberUI(){
+  var tag=$("mcConsentTag"), det=$("mcConsentDet"); if(!tag) return;
+  var f=$("c_follow").value;
+  if(!f){ tag.className="tag wait"; tag.textContent="CONSENT"; det.textContent="They have not yet answered the member-checking question on the consent page."; }
+  else if(f==="Yes"){ tag.className="tag ok"; tag.textContent="AGREED";
+    det.textContent="They agreed on the consent form to be contacted about a summary of their interview."; }
+  else { tag.className="tag bad"; tag.textContent="DECLINED";
+    det.textContent="They answered No on the consent form. Do not contact them, and leave this page blank."; }
+  var on=(f==="Yes"); ["mcEmail"].forEach(function(id){ var b=$(id); if(b) b.disabled=!on; });
+}
+function qSrcUI(){
+  var tag=$("qSrcTag"), det=$("qSrcDet"); if(!tag) return;
+  var cur=qLoad(), isApproved=cur.join("|")===Q_DEFAULT.join("|");
+  tag.className="tag "+(isApproved?"ok":"warn"); tag.textContent=isApproved?"APPENDIX A v0.1":"CHANGED";
+  det.textContent=isApproved?"The approved fifteen questions are loaded."
+    :"The wording on this tablet differs from Appendix A v0.1. Use changed wording only after the IRB has approved the amendment.";
+}
+function allUI(){ consentUI(); eligUI(); recencyUI(); memberUI(); qSrcUI(); doneUI(); rowUI(); }
+function onChange(){ ssqUI(); allUI(); save(); }
+</script>
+<script>
+"use strict";
+/* ---------- files out ---------- */
+function download(name,text,type){
+  var b=new Blob([text],{type:type||"text/plain;charset=utf-8"});
+  var u=URL.createObjectURL(b), a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); },4000);
+}
+function stampNow(){ return new Date().toISOString().replace(/[:.]/g,"-").slice(0,16); }
+function copyText(t,ok){
+  var det=$("copyDet");
+  function good(){ det.textContent=ok+" Paste it into your spreadsheet."; det.style.color="#58c878"; }
+  function bad(){ det.textContent="This tablet would not let the page copy for you. Select the text in the box below and copy it by hand."; det.style.color="#e8b03f"; }
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(good,bad); return; }
+  }catch(e){}
+  try{ var ta=$("rowOut"); ta.value=t; ta.removeAttribute("readonly"); ta.focus(); ta.setSelectionRange(0,t.length);
+    var okd=document.execCommand("copy"); ta.setAttribute("readonly","readonly"); okd?good():bad(); }catch(e2){ bad(); }
+}
+function consentHtml(){
+  var name=($("c_name").value||"").trim(), code=codeNow();
+  var docHtml=qs("#s1 .doc").innerHTML;
+  return "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Signed consent "+code+"</title>"+
+  "<style>body{font:12pt/1.5 Georgia,serif;max-width:7.5in;margin:0.6in auto;color:#000}"+
+  "h3{font-size:12.5pt;margin:16px 0 4px}p{margin:8px 0}.sigimg{border:1px solid #000;max-width:420px;display:block;margin:6px 0}"+
+  ".box{border:1px solid #000;padding:10px 14px;margin:16px 0}small{color:#444}</style></head><body>"+
+  docHtml+
+  "<div class='box'><h3>Signed</h3>"+
+  "<p><b>Participant name:</b> "+name.replace(/[<>&]/g,"")+"</p>"+
+  "<p><b>Participant code:</b> "+code+"</p>"+
+  "<p><b>I give consent to be audiotaped during this study:</b> "+($("c_audio").value||"not answered")+"</p>"+
+  "<p><b>I give consent to be contacted a few weeks after my session to review a summary of my interview:</b> "+($("c_follow").value||"not answered")+"</p>"+
+  "<p><b>Participant signature:</b></p><img class='sigimg' src='"+sigData()+"' alt='signature'>"+
+  "<p><b>Date signed:</b> "+($("c_sigdate").value||"")+" &nbsp; <b>Time:</b> "+($("c_sigtime").value||"")+"</p>"+
+  "<p><b>Signature of investigator:</b> "+($("c_invest").value||"").replace(/[<>&]/g,"")+"</p>"+
+  "<p><b>Copy given to the participant:</b> "+($("c_copy").checked?"yes":"no")+"</p></div>"+
+  "<small>Saved "+new Date().toString()+" from Session Pack v1.2. This file contains the participant's name and signature. "+
+  "Store it in the locked or encrypted location for signed consent forms, separately from the coded study data.</small>"+
+  "</body></html>";
+}
+function notesText(){
+  var d=rowData(), out=[];
+  out.push("SESSION NOTES  "+codeNow()+"  "+($("f_date").value||"")+"");
+  out.push("Exported "+new Date().toString());
+  out.push("No participant name appears in this file.");
+  out.push("");
+  for(var i=0;i<d.cols.length;i++){
+    if(d.vals[i]==="") continue;
+    out.push(d.cols[i].replace(/_/g," ")+": "+d.vals[i]);
+  }
+  out.push("");
+  out.push("INTERVIEW, QUESTION BY QUESTION");
+  var qt=qLoad();
+  for(var j=0;j<15;j++){
+    var a=$("qa"+j); if(!a) continue;
+    out.push("");
+    out.push("Q"+(j+1)+". "+qt[j]);
+    out.push(a.value.trim()?a.value:"(no notes)");
+  }
+  return out.join("\r\n")+"\r\n";
+}
+
+var FROM_EMAIL="jbeim@okstate.edu";
+function mailto(to,subject,body){
+  var u="mailto:"+encodeURIComponent(to||"")+"?subject="+encodeURIComponent(subject)+
+        "&body="+encodeURIComponent(body);
+  var a=document.createElement("a"); a.href=u; document.body.appendChild(a); a.click(); a.remove();
+}
+function consentEmail(){
+  var name=($("c_name").value||"").trim().split(/\s+/)[0]||"there";
+  var to=($("mc_email").value||"").trim();
+  var subj="Your copy of the signed consent form";
+  var body=
+"Dear "+name+",\n\n"+
+"Thank you for taking part in the study today. Your signed copy of the consent form is attached.\n\n"+
+"If you have any questions about the research, you can reach me at "+FROM_EMAIL+" or 732-208-9948. "+
+"If you have questions about your rights as a research volunteer, or would rather speak with someone not on the research team, "+
+"the Oklahoma State University IRB can be reached at (405) 744-3377 or irb@okstate.edu.\n\n"+
+"With thanks,\n\nJason Beim\nDoctoral candidate, School of Educational Foundations, Leadership, and Aviation\n"+
+"Oklahoma State University\n"+FROM_EMAIL+"\n\n"+
+"-----\nATTACH THE CONSENT FILE BEFORE SENDING. It is the file named CONSENT_SIGNED_"+codeNow()+"_... that you just saved.\n"+
+"Delete these last two lines once you have attached it.";
+  mailto(to,subj,body);
+}
+function memberEmail(){
+  var name=($("c_name").value||"").trim().split(/\s+/)[0]||"there";
+  var to=($("mc_email").value||"").trim();
+  var txt=($("mc_text").value||"").trim();
+  var subj="A short summary of your interview, for you to check";
+  var body=
+"Dear "+name+",\n\n"+
+"A few weeks ago you took part in my study on how pilots visually detect small drones from the cockpit. Thank you again.\n\n"+
+"As I mentioned at the time, I said I would send you a short summary of the main themes from your own interview so that you can "+
+"check I captured what you meant. It is below. Nothing in it identifies you.\n\n"+
+"Please tell me whether it is right, what you would correct, and whether there is anything you would rather I left out. "+
+"There is no wrong answer, and asking me to remove something costs you nothing.\n\n"+
+"-----\n"+(txt||"[paste the summary of themes here before sending]")+"\n-----\n\n"+
+"If I do not hear back that is fine too, and I will take it that you are content with the summary as written.\n\n"+
+"With thanks,\n\nJason Beim\nDoctoral candidate, School of Educational Foundations, Leadership, and Aviation\n"+
+"Oklahoma State University\n"+FROM_EMAIL;
+  mailto(to,subj,body);
+}
+function contactSheet(){
+  return "CONTACT SHEET  (KEEP WITH THE CODE-TO-NAME KEY, NOT WITH THE STUDY DATA)\r\n"+
+  "=================================================================\r\n"+
+  "Participant code: "+codeNow()+"\r\n"+
+  "Session date:     "+($("f_date").value||"")+"\r\n"+
+  "Name:             "+($("c_name").value||"")+"\r\n"+
+  "Email:            "+($("mc_email").value||"")+"\r\n"+
+  "Phone:            "+($("mc_phone").value||"")+"\r\n"+
+  "Preferred method: "+($("mc_pref").value||"")+"\r\n"+
+  "\r\nPERMISSIONS AS SIGNED\r\n"+
+  "Audiotaping:            "+($("c_audio").value||"not answered")+"\r\n"+
+  "Member checking:        "+($("c_follow").value||"not answered")+"\r\n"+
+  "Future studies:         "+($("c_future").value||"not asked")+"\r\n"+
+  "Results when finished:  "+($("c_results").value||"not asked")+"\r\n"+
+  "\r\nMEMBER CHECKING\r\n"+
+  "Sent:     "+($("mc_sent").value||"")+"\r\n"+
+  "Replied:  "+($("mc_reply").value||"")+"\r\n"+
+  "Outcome:  "+($("mc_outcome").value||"")+"\r\n"+
+  "Closed:   "+($("mc_closed").value||"")+"\r\n"+
+  "\r\nDestroy this sheet once member checking and analysis are finished, by mid-2027,\r\n"+
+  "along with the code-to-name key. The coded study data does not depend on it.\r\n"+
+  "\r\nSaved "+new Date().toString()+" from Session Pack v1.2.\r\n";
+}
+
+/* ---------- wiring ---------- */
+function navBuild(){
+  var nav=$("nav");
+  qsa("section.sec").forEach(function(s,i){
+    var b=document.createElement("button");
+    b.type="button"; b.textContent=s.getAttribute("data-nav"); b.setAttribute("data-t",s.id);
+    b.onclick=function(){ showSec(s.id); };
+    nav.appendChild(b);
+  });
+}
+function showSec(id){
+  qsa("section.sec").forEach(function(s){ s.classList.toggle("on",s.id===id); });
+  qsa("#nav button").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-t")===id); });
+  if(id==="s9"){ allUI(); storeList(); }
+  window.scrollTo(0,0);
+}
+function boot(){
+  navBuild(); ssqBuild("ssqPre","pre"); ssqBuild("ssqMid","mid"); ssqBuild("ssqPost","post");
+  qBuild(); sigInit(); ynInit();
+  if(!$("f_date").value) $("f_date").value=new Date().toISOString().slice(0,10);
+
+  document.addEventListener("input",function(e){ if(e.target.closest&&e.target.closest("#qEditBox")) return; onChange(); });
+  document.addEventListener("change",function(e){ if(e.target.closest&&e.target.closest("#qEditBox")) return; onChange(); });
+
+  $("f_code").addEventListener("change",function(){
+    var k=storeKey(); try{ var s=localStorage.getItem(k); if(s){ restore(JSON.parse(s)); } }catch(e){}
+    allUI(); storeList();
+  });
+
+  $("saveConsent").onclick=function(){
+    download("CONSENT_SIGNED_"+codeNow()+"_"+stampNow()+".html",consentHtml(),"text/html;charset=utf-8");
+  };
+  $("copyRow").onclick=function(){ copyText(tsv().row,"Row copied."); };
+  $("copyHead").onclick=function(){ copyText(tsv().head,"Header row copied."); };
+  $("copyBoth").onclick=function(){ var t=tsv(); copyText(t.head+"\n"+t.row,"Header and row copied."); };
+  $("dlCsv").onclick=function(){ download("SESSION_"+codeNow()+"_"+stampNow()+".csv",csvText(),"text/csv;charset=utf-8"); };
+  $("dlJson").onclick=function(){
+    var o=snapshot(); delete o._sig;                       /* the signature stays with the consent file */
+    qsa("[data-private]").forEach(function(el){ delete o.v["p:"+el.id]; });   /* and so does the name */
+    o._row=rowData();
+    download("SESSION_"+codeNow()+"_"+stampNow()+".json",JSON.stringify(o,null,1),"application/json"); };
+  $("dlNotes").onclick=function(){ download("SESSION_NOTES_"+codeNow()+"_"+stampNow()+".txt",notesText()); };
+  $("doPrint").onclick=function(){ window.print(); };
+  $("emailConsent").onclick=consentEmail;
+  $("mcEmail").onclick=memberEmail;
+  $("dlContact").onclick=function(){ download("CONTACT_"+codeNow()+"_"+stampNow()+".txt",contactSheet()); };
+
+  var clearArmed=false;
+  $("clearAll").onclick=function(){
+    if(!clearArmed){ clearArmed=true; this.textContent="Press again to clear this form permanently";
+      $("clearDet").textContent="Nothing has been cleared yet. This resets in a few seconds if you walk away.";
+      var b=this; setTimeout(function(){ if(clearArmed){ clearArmed=false; b.textContent="Clear this form for the next participant"; $("clearDet").textContent=""; } },8000);
+      return; }
+    clearArmed=false; this.textContent="Clear this form for the next participant";
+    try{ localStorage.removeItem(storeKey()); }catch(e){}
+    qsa("input,textarea,select").forEach(function(el){
+      if(el.closest("#qEditBox")) return;
+      if(el.classList.contains("qt")) return;
+      if(el.type==="checkbox"||el.type==="radio") el.checked=false; else el.value="";
+    });
+    var c=$("sigPad"); if(c&&sigCtx){ sigCtx.clearRect(0,0,c.width,c.height); } sigDrawn=false;
+    $("f_date").value=new Date().toISOString().slice(0,10);
+    ynPaint(); ssqUI(); allUI(); storeList();
+    $("clearDet").textContent="Cleared. The interview questions you set were kept.";
+  };
+
+  $("qEditToggle").onclick=function(){ var b=$("qEditBox"); b.style.display=b.style.display==="none"?"block":"none";
+    if(b.style.display==="block") $("qPaste").value=qLoad().join("\n"); };
+  $("qApply").onclick=function(){
+    var lines=$("qPaste").value.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+    if(lines.length!==15){ $("qPasteDet").textContent="That was "+lines.length+" line"+(lines.length===1?"":"s")+", and fifteen are needed. Nothing was changed."; return; }
+    var answers=[]; for(var i=0;i<15;i++){ var a=$("qa"+i); answers.push(a?a.value:""); }
+    qSave(lines); qBuild();
+    for(var j=0;j<15;j++){ var b=$("qa"+j); if(b) b.value=answers[j]; }
+    $("qPasteDet").textContent="Your fifteen questions are in, and they will be used for every participant on this tablet. Any notes you had already typed were kept.";
+    save();
+  };
+  $("qReset").onclick=function(){
+    var answers=[]; for(var i=0;i<15;i++){ var a=$("qa"+i); answers.push(a?a.value:""); }
+    qSave(Q_DEFAULT.slice()); qBuild();
+    for(var j=0;j<15;j++){ var b=$("qa"+j); if(b) b.value=answers[j]; }
+    $("qPaste").value=Q_DEFAULT.join("\n");
+    $("qPasteDet").textContent="The Appendix A v0.1 questions are back. Your notes were kept.";
+    save();
+  };
+
+  try{ var s=localStorage.getItem(storeKey()); if(s) restore(JSON.parse(s)); }catch(e){}
+  ynPaint(); ssqUI(); allUI(); storeList(); showSec("s1");
+}
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot); else boot();
+</script>
+</body>
+</html>
