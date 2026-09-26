@@ -1,7 +1,7 @@
 APP SITE FOLDER: what to upload to GitHub (repository jbeim/flight-study)
 =========================================================================
 Upload EVERYTHING in this folder, keeping the folder structure:
-  index.html                  the study app, version 2.8.3 (2.1 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
+  index.html                  the study app, version 2.8.5 (2.1 MB: three.js, SheetJS, JSZip and the two lounge pictures are built in)
   data/telemetry.js           aircraft track and drone geometry for all 12 cards (the app scores presses with it)
   data/motion/<clip>.json     picture-steadying tracks, one per clip (2.8.0). TAKEOFF.json is the only one so far;
                               the twelve approach tracks need the proxies described in
@@ -36,3 +36,7 @@ files in -> Commit changes. Wait about two minutes for the site to rebuild.
 Desktop preview: double-click index.html here.
 
 See RESEARCHER_QUICK_GUIDE.txt for how a session runs.
+
+State of the site on 25 Sep 2026: app 2.8.4 built (participant text brought to Consent Form v4, Participant Briefing v0.7 and Debriefing Script v0.6; no logic change from 2.8.3). NOT YET UPLOADED to jbeim.github.io and NOT to be run with a participant until the IRB Round 2 approval letter is in. 2.8.3 is archived in zz_Archive\App_2.8.3_2026-09-14.
+
+State of the site on 26 Sep 2026: app 2.8.5 built (consent reading copy brought to Consent Form v5, airborne hazards wording; otherwise identical to 2.8.4). NOT YET UPLOADED to jbeim.github.io and NOT to be run with a participant until the IRB Round 2 approval letter is in. 2.8.4 archived in zz_Archive\App_2.8.4_2026-09-25.
